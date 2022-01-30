@@ -102,13 +102,20 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    granulator.setCurrentPlaybackSampleRate(sampleRate);
+    grain_sample_rate_ratio = GRAIN_SAMPLE_RATE/sampleRate;
+    granulator.setCurrentPlaybackSampleRate(GRAIN_SAMPLE_RATE);
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<GranulatorVoice*>(granulator.getVoice(i))) {
-            //update voice parameters from value tree
-            voice->prepareToPlay(sampleRate, samplesPerBlock, getTotalNumOutputChannels());
+            //update voice parameters from value tree. Use the Grain sample rate, not the hardware one
+            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels());
         }
     }
+
+    resample_buffer = juce::AudioSampleBuffer(1, samplesPerBlock * 2); //allocate twice as many samples defensively
+
+    interpolators[0] = juce::Interpolators::Lagrange();
+    interpolators[1] = juce::Interpolators::Lagrange();
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -150,9 +157,11 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
+    // clear extra output channels if they don't all get overriden
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    //Update Parameters on Audio Thread in each voice
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<juce::MPESynthesiserVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree
@@ -160,11 +169,29 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             gran_voice->updateParameters(apvts);
         }
     }
-    granulator.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-    // INTERNAL CLIPPING
-    // for (int c = 0; c < totalNumOutputChannels; ++c) {
-    //     juce::FloatVectorOperations::clip(buffer.getWritePointer(c), buffer.getReadPointer(c), -1.0f, 1.0f, buffer.getNumSamples());
-    // }
+
+    //allocate more to resample buffer if need be. ideally this won't be called
+    int num_samples = int(ceil(buffer.getNumSamples() * grain_sample_rate_ratio));
+    if (num_samples > resample_buffer.getNumSamples()) {
+        //hope this doesn't happen (allocating in audio thread)
+        resample_buffer.setSize(resample_buffer.getNumChannels(), num_samples);
+    }
+
+    // Render next block for each granulator voice on resample buffer
+    granulator.renderNextBlock(resample_buffer, midiMessages, 0, buffer.getNumSamples());
+
+
+   
+    for (int c = 0; c < totalNumOutputChannels; ++c) {
+        // resample temporary buffer samples to the sample rate of the output buffer
+        interpolators[c].process   (grain_sample_rate_ratio, 
+                                    resample_buffer.getReadPointer(0), 
+                                    buffer.getWritePointer(c), 
+                                    buffer.getNumSamples());
+        // internal clipping
+        juce::FloatVectorOperations::clip  (buffer.getWritePointer(c), buffer.getWritePointer(c),
+                                            -1.0f, 1.0f, buffer.getNumSamples());
+              
 }
 
 //==============================================================================
