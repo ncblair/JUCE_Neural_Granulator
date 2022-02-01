@@ -1,8 +1,10 @@
 #pragma once
+#include <torch/torch.h>
 #include <JuceHeader.h>
 
 class GranulatorVoice : public juce::MPESynthesiserVoice {
   public: 
+    //MPESynthesiserVoice Methods
     void noteStarted() override;
     void noteStopped(bool allowTailOff) override;
     void notePitchbendChanged() override;
@@ -13,22 +15,42 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     void setCurrentSampleRate (double newRate) override;
     void renderNextBlock (juce::AudioBuffer< float > &outputBuffer, int startSample, int numSamples) override;
     bool isActive() const override;
-    void updateParameters(juce::AudioProcessorValueTreeState& apvts);
+
+    //Custom Methods
+    void update_parameters(juce::AudioProcessorValueTreeState& apvts);
+    // void replace_audio(const at::Tensor& grain); //MOVE TO PLUGIN PROCESSOR
+
   private:
+    // Audio Buffers
+    std::shared_ptr<juce::AudioBuffer<float>> grain_buffer{nullptr}; // references current grain being held in the Processor
+    juce::AudioBuffer<float> pitched_grain_buffer; // stores the current pitched note version of grain
+    juce::AudioBuffer<float> internal_playback_buffer; // to apply envelopes non-destructively
 
-  //Voice Housekeeping
-  bool note_on{false};
-  bool finger_down{false};
+    // Pitching/Interpolation
+    juce::Interpolators::Lagrange interp;
+    int pitched_samples;
 
-  //Envelopes
-  juce::ADSR env1;
+    //Grain list
+    const int N_GRAINS{100};
+    std::array<Grain, N_GRAINS> grains; // Each voice has a list of grains
+    int grain_index = 0.0;
 
-  //Grain Parameters
-  float grain_size;
-  float grain_scan;
+    //Voice Housekeeping
+    bool note_on{false};
+    bool finger_down{false};
 
-  //Granulator Parameters
-  float spray; //randomness (0-1)
-  float density; //ms (could scale with note, not sure)
-  int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
+    //Envelopes
+    juce::ADSR env1;
+
+    //Grain User Parameters
+    float grain_size; // percentage of grain to read in 0 to 1
+    float grain_scan;
+
+    //Granulator User Parameters
+    float spray; //randomness (0-1)
+    float density; //ms (could scale with note, not sure)
+    int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
+
+    //Granulator Internal Variables
+    float gain; // 0 to 1, based on velocity
 };

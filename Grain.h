@@ -19,8 +19,8 @@ class Grain {
     bool note_on{false};
 
     //Grain Parameters
-    float grain_size;
-    float grain_scan;
+    float grain_size; // length of grain in seconds
+    float grain_scan; // position in buffer normalized from 0 to 1
 
     //Granulator Parameters
     float spray; //randomness (0-1)

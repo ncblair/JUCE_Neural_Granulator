@@ -166,7 +166,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         if (auto voice = dynamic_cast<juce::MPESynthesiserVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree
             auto gran_voice = dynamic_cast<GranulatorVoice*>(voice);
-            gran_voice->updateParameters(apvts);
+            gran_voice->update_parameters(apvts);
         }
     }
 
