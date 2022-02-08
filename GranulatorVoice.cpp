@@ -32,20 +32,22 @@ void GranulatorVoice::noteStopped(bool allowTailOff) {
 }
 
 void GranulatorVoice::notePitchbendChanged() {
+    // load current grain
+    auto grain_buffer = processorRef.grain_buffer_ptr_atomic.load();
     // get how much more room we need in buffer for new note
     auto scale = mtof(60.0f) / float(currentlyPlayingNote.getFrequencyInHertz());
-    pitched_samples = int(grain_buffer.getNumSamples() * scale);
+    pitched_samples = int(grain_buffer->getNumSamples() * scale);
     
     if (scale != 1.0f) {
         //repitch grain
         interp.process(scale, 
-                    grain_buffer.getReadPointer(0), 
+                    grain_buffer->getReadPointer(0), 
                     note_buffer.getWritePointer(0), 
                     pitched_samples);
     }
     else {
         // if we don't need to scale we can just copy
-        pitched_grain_buffer.copyFrom(0, 0, grain_buffer, 0, 0, pitched_samples);
+        pitched_grain_buffer.copyFrom(0, 0, *grain_buffer, 0, 0, pitched_samples);
     }
 }
 
@@ -61,7 +63,7 @@ void GranulatorVoice::noteKeyStateChanged() {
     
 }
 
-void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels) {
+void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels, AudioPluginAudioProcessor& p) {
     // Set up Envelope
     env1.setSampleRate(sampleRate);
 
@@ -70,6 +72,9 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
     internal_playback_buffer.clear();
     pitched_grain_buffer.setSize(1, juce::roundToInt(sampleRate * 16)); //fit 16 seconds of audio
     pitched_grain_buffer.clear();
+
+    //Set up Processor Ref
+    processorRef = p;
 }
 
 void GranulatorVoice::setCurrentSampleRate (double newRate) {
@@ -133,12 +138,3 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     density = apvts.getRawParameterValue("DENSITY")->load();
     grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
 }
-
-//MOVE THIS OUTSIDE TO AN PLUGIN PROCESSOR
-// void GranulatorVoice::replace_audio(const at::Tensor& grain, std::mutex& tensor_mutex) {
-//     const std::lock_guard<std::mutex> lock(tensor_mutex); // protect the tensor's data while copying
-//     for (int channel = 0; channel < grain_buffer.getNumChannels(); ++channel)
-//     {
-//         grain_buffer.copyFrom(0, 0, tensor.data_ptr<float>(), grain_buffer.getNumSamples());
-//     }
-// }

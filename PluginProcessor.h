@@ -2,6 +2,7 @@
 
 // #include <juce_audio_processors/juce_audio_processors.h>
 #include <JuceHeader.h>
+#include <torch/torch.h>
 
 //==============================================================================
 class AudioPluginAudioProcessor  : public juce::AudioProcessor
@@ -49,6 +50,9 @@ public:
 
     GRAIN_SAMPLE_RATE{48000.}; // constant playback rate of nn grains
 
+    //Replace audio grain 
+    void replace_grain(const at::Tensor& grain);
+    
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
     
@@ -62,6 +66,15 @@ private:
 
     // temporary/utilites
     double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
+
+    // Handle current audio grain
+    std::atomic<std::unique_ptr<juce::AudioBuffer<float>>> grain_buffer_ptr_atomic;
+    std::atomic<std::unique_ptr<juce::AudioBuffer<float>>> temp_buffer_ptr_atomic;
+    std::atomic<bool> new_grain_ready{false};
+    //two grain buffers. One is always temporary, one is always active
+    juce::AudioBuffer<float> grain_buffer;
+    juce::AudioBuffer<float> temp_buffer;
+    
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)

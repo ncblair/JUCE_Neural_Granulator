@@ -14,7 +14,13 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        ), apvts(*this, nullptr, "Parameters", createParameters()), 
                        logger(juce::File("/users/ncblair/COMPSCI/JUCE_Harmonic_Oscillator/log.txt"), "Damped Log\n")
 {
-    
+    //set up grain buffers
+    grain_buffer.setSize(1, 24000);
+    temp_buffer.setSize(1, 24000);
+    grain_buffer_ptr_atomic.store(std::make_unique(grain_buffer));
+    temp_buffer_ptr_atomic.store(std::make_unique(temp_buffer));
+
+    // init granulator
     granulator.clearVoices();
     for (auto i = 0; i < 16; ++i) {
         granulator.addVoice(new GranulatorVoice());
@@ -107,7 +113,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<GranulatorVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree. Use the Grain sample rate, not the hardware one
-            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels());
+            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), *this);
         }
     }
 
@@ -161,6 +167,13 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    // If a new grain is ready, switch the pointers atomically
+    if (new_grain_ready.load()) {
+        grain_buffer_ptr_atomic.store(temp_ptr);
+        temp_buffer_ptr_atomic.store(grain_ptr);
+        new_grain_ready.store(false);
+    }
+    
     //Update Parameters on Audio Thread in each voice
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<juce::MPESynthesiserVoice*>(granulator.getVoice(i))) {
@@ -220,6 +233,22 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
     // whose contents will have been created by the getStateInformation() call.
     juce::ignoreUnused (data, sizeInBytes);
 }
+
+void AudioPluginAudioProcessor::replace_grain(const at::Tensor& grain) {
+    // Runs on Torch Thread
+
+    // Wait until pointers have been swapped in audio thread
+    while (new_grain_ready.load());
+    
+    auto temp_ptr = temp_buffer_ptr_atomic.load();
+    auto grain_ptr = grain_buffer_ptr_atomic.load();
+    for (int channel = 0; channel < temp_ptr->getNumChannels(); ++channel)
+    {
+        temp_ptr->copyFrom(0, 0, tensor.data_ptr<float>(), temp_ptr->getNumSamples());
+    }
+    new_grain_ready.store(true);
+}
+
 
 //==============================================================================
 // This creates new instances of the plugin..
@@ -292,3 +321,4 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     
     return {params.begin(), params.end()};
 }
+
