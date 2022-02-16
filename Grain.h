@@ -3,28 +3,28 @@
 
 class Grain {
   public: 
-    void noteStarted() override;
-    void noteStopped(bool allowTailOff) override;
-    void notePitchbendChanged() override;
-    void prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels);
-    void setCurrentSampleRate (double newRate) override;
-    void renderNextBlock (juce::AudioBuffer< float > &outputBuffer, int startSample, int numSamples) override;
-    bool isActive() const override;
-    void updateParameters(juce::AudioProcessorValueTreeState& apvts);
+    void noteStarted(float size, float scan);
+    void prepareToPlay(double sampleRate, juce::AudioBuffer<float>* grain);
+    float getNextSample(int numSamplesInSourceBuffer);
+    bool isActive();
   private:
     //Actual Source
-    std::shared_ptr<juce::AudioBuffer<float>> source{nullptr};
+    juce::AudioBuffer<float>* source{nullptr};
+
+    // For now, we will use an ADSR window on each grain
+    // TODO: Consider switching this to Expodec, Gaussian, Rexpodec. 
+    //  OR: Even better, connect this to a GUI envelope. 
+    juce::ADSR grain_env;
+    
 
     //Voice Housekeeping
     bool note_on{false};
+    float percent_elapsed{0.0f};
+    int cur_sample{0};
 
     //Grain Parameters
     float grain_size; // length of grain in seconds
     float grain_scan; // position in buffer normalized from 0 to 1
 
-    //Granulator Parameters
-    float spray; //randomness (0-1)
-    float density; //ms (could scale with note, not sure)
-    int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
-
+    // int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
 };

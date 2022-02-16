@@ -30,11 +30,11 @@ void TorchThread::gen_new_grain() {
     // NORMALIZE GRAIN ??? Might not need to with better model
     float max = *at::max(at::abs(output)).data_ptr<float>();
     if (max > 0.0) { //dont divide by 0
-        output = output / max; 
+        output = output / max;
         output = output / 2.0;
     }
     //END NORMALIZE GRAIN
-    editor.processorRef.granulator.replace_grain(output);
+    editor.processorRef.replace_grain(output);
 }
 
 void TorchThread::run() {
@@ -48,7 +48,7 @@ void TorchThread::run() {
         */
         while ((temp_x != x()) || (temp_y != y())) {
             // note x and y values before generating the grain
-            temp_x = x(); 
+            temp_x = x();
             temp_y = y();
             gen_new_grain();
         }

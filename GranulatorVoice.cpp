@@ -24,10 +24,15 @@ void GranulatorVoice::noteStarted() {
 
     // set the pitch of this midi voice
     notePitchbenChanged();
+
+    // reset note trigger
+    trigger_helper = 0;
+    spray_factor = 0.0f;
 }
 
 void GranulatorVoice::noteStopped(bool allowTailOff) {
     finger_down = false;
+    env1.noteOff();
     juce::ignoreUnused (allowTailOff);
 }
 
@@ -42,7 +47,7 @@ void GranulatorVoice::notePitchbendChanged() {
         //repitch grain
         interp.process(scale, 
                     grain_buffer->getReadPointer(0), 
-                    note_buffer.getWritePointer(0), 
+                    pitched_grain_buffer.getWritePointer(0), 
                     pitched_samples);
     }
     else {
@@ -91,21 +96,28 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
             internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), (numSamples) * 2);
         }
 
-        // check if we need to trigger a new grain
-        if (grain_scheduler.trigger()) {            
-            // set grain_index to next free grain using circular buffer
-            //if we check every grain and nothing is available end loop
-            for (int i = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++i < N_GRAINS + 1;);
-            // turn on free grain with params at grain_index
-            grains[grain_index].noteStarted(grain_size, grain_scan);
+        // get write pointer to internal playback buffer
+        // TODO: pre-allocate this?
+        auto write_pointer = internal_playback_buffer.getWritePointer(0);
+
+        // We will process everything one sample at a time (we might need to trigger a new grain at a certain sample)
+        for (int i = 0; i < numSamples; ++i) {
+             // check if we need to trigger a new grain
+            if (trigger()) {            
+                // set grain_index to next free grain using circular buffer
+                //if we check every grain and nothing is available end loop
+                for (int i = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++i < N_GRAINS + 1;);
+                // turn on free grain with params at grain_index
+                grains[grain_index].noteStarted(grain_size, grain_scan);
+            }
+
+            // Render All Grains [only active ones will actually do anything]
+            for (int i = 0; i < N_GRAINS; i++) {
+                // call render method on individual grains. this has to be FAST
+                write_pointer[i] += grains[i].getNextSample(pitched_samples);
+            }
         }
 
-        // Render All Grains [only active ones will actually do anything]
-        for (int i = 0; i < N_GRAINS; i++) {
-            // call render method on individual grains. this has to be FAST
-            grains[i].renderNextBlock(internal_playback_buffer, numSamples); 
-        }
-        
         //Apply ADSR Envelope
         env1.applyEnvelopeToBuffer(internal_playback_buffer, startSample, numSamples);
 
@@ -113,11 +125,30 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         for (int c = 0; c < outputBuffer.getNumChannels; c++) {
             outputBuffer.addFrom(c, startSample, internal_playback_buffer, c, 0, numSamples, gain);
         }
+
+        // if we reached the end of our envelope, turn the note off
+        if (!env1.isActive()) {
+            note_on = false;
+        }
     }
 }
 
 bool GranulatorVoice::isActive() const{
     return note_on;
+}
+
+bool GranulatorVoice::trigger() {
+    // trigger approximately ~density~ times per second
+    // spray_factor is initialized to 0 so we will always trigger the first time this is called
+    // spray_factor is then set to a random float between 0 and 2 that determines how soon the
+    //  next grain arrives
+    trigger_helper += density;
+    if (trigger_helper > processorRef.GRAIN_SAMPLE_RATE * spray_factor) {
+        trigger_helper = 0.0;
+        spray_factor = random.nextFloat()*2.0f;
+        return true;
+    }
+    return false;
 }
 
 void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvts) {
@@ -138,3 +169,4 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     density = apvts.getRawParameterValue("DENSITY")->load();
     grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
 }
+

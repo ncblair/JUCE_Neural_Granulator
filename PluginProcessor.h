@@ -48,7 +48,7 @@ public:
     // std::unique_ptr<juce::UndoManager> undo_manager;
     juce::FileLogger logger;
 
-    GRAIN_SAMPLE_RATE{48000.}; // constant playback rate of nn grains
+    double GRAIN_SAMPLE_RATE{48000.}; // constant playback rate of nn grains
 
     //Replace audio grain 
     void replace_grain(const at::Tensor& grain);
@@ -68,8 +68,8 @@ private:
     double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
 
     // Handle current audio grain
-    std::atomic<std::unique_ptr<juce::AudioBuffer<float>>> grain_buffer_ptr_atomic;
-    std::atomic<std::unique_ptr<juce::AudioBuffer<float>>> temp_buffer_ptr_atomic;
+    std::atomic<juce::AudioBuffer<float>*> grain_buffer_ptr_atomic;
+    std::atomic<juce::AudioBuffer<float>*> temp_buffer_ptr_atomic;
     std::atomic<bool> new_grain_ready{false};
     //two grain buffers. One is always temporary, one is always active
     juce::AudioBuffer<float> grain_buffer;

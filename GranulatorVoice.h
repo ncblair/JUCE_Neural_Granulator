@@ -15,6 +15,7 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     void setCurrentSampleRate (double newRate) override;
     void renderNextBlock (juce::AudioBuffer< float > &outputBuffer, int startSample, int numSamples) override;
     bool isActive() const override;
+    bool trigger();
 
     //Custom Methods
     void update_parameters(juce::AudioProcessorValueTreeState& apvts);
@@ -30,7 +31,7 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
 
     // Pitching/Interpolation
     juce::Interpolators::Lagrange interp;
-    int pitched_samples;
+    int pitched_samples; // number of samples in pitched grain
 
     //Grain list
     const int N_GRAINS{100};
@@ -55,4 +56,10 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
 
     //Granulator Internal Variables
     float gain; // 0 to 1, based on velocity
+
+    //Grain Scheduler
+    int trigger_helper{0};
+    float spray_factor{0.0f};
+    juce::Random::Random random{1111}; // seed 1111
+    
 };

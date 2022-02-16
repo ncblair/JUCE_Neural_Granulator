@@ -17,8 +17,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     //set up grain buffers
     grain_buffer.setSize(1, 24000);
     temp_buffer.setSize(1, 24000);
-    grain_buffer_ptr_atomic.store(std::make_unique(grain_buffer));
-    temp_buffer_ptr_atomic.store(std::make_unique(temp_buffer));
+    grain_buffer_ptr_atomic.store(&grain_buffer);
+    temp_buffer_ptr_atomic.store(&temp_buffer);
 
     // init granulator
     granulator.clearVoices();
