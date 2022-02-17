@@ -37,23 +37,25 @@ void GranulatorVoice::noteStopped(bool allowTailOff) {
 }
 
 void GranulatorVoice::notePitchbendChanged() {
-    // load current grain
-    auto grain_buffer = processorRef.grain_buffer_ptr_atomic.load();
-    // get how much more room we need in buffer for new note
-    auto scale = mtof(60.0f) / float(currentlyPlayingNote.getFrequencyInHertz());
-    pitched_samples = int(grain_buffer->getNumSamples() * scale);
+    playback_rate = float(currentlyPlayingNote.getFrequencyInHertz()) / mtof(60.0f);
+    // // load current grain
+    // auto grain_buffer = processorRef.grain_buffer_ptr_atomic.load();
+    // // get how much more room we need in buffer for new note
+    // auto scale = mtof(60.0f) / float(currentlyPlayingNote.getFrequencyInHertz());
     
-    if (scale != 1.0f) {
-        //repitch grain
-        interp.process(scale, 
-                    grain_buffer->getReadPointer(0), 
-                    pitched_grain_buffer.getWritePointer(0), 
-                    pitched_samples);
-    }
-    else {
-        // if we don't need to scale we can just copy
-        pitched_grain_buffer.copyFrom(0, 0, *grain_buffer, 0, 0, pitched_samples);
-    }
+    // pitched_samples = int(grain_buffer->getNumSamples() * scale);
+    
+    // if (scale != 1.0f) {
+    //     //repitch grain
+    //     interp.process(scale, 
+    //                 grain_buffer->getReadPointer(0), 
+    //                 pitched_grain_buffer.getWritePointer(0), 
+    //                 pitched_samples);
+    // }
+    // else {
+    //     // if we don't need to scale we can just copy
+    //     pitched_grain_buffer.copyFrom(0, 0, *grain_buffer, 0, 0, pitched_samples);
+    // }
 }
 
 void GranulatorVoice::notePressureChanged() {
@@ -75,8 +77,8 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
     // Set up Buffers
     internal_playback_buffer.setSize(outputChannels, samplesPerBlock * 2); //defensively set to twice samplesPerBlock
     internal_playback_buffer.clear();
-    pitched_grain_buffer.setSize(1, juce::roundToInt(sampleRate * 16)); //fit 16 seconds of audio
-    pitched_grain_buffer.clear();
+    // pitched_grain_buffer.setSize(1, juce::roundToInt(sampleRate * 16)); //fit 16 seconds of audio
+    // pitched_grain_buffer.clear();
 
     //Set up Processor Ref
     processorRef = p;
@@ -93,6 +95,7 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
     if (isActive()) {
         //check if we need to increase the size of our playback buffer (shouldn't happen hopefully)
         if (numSamples > internal_playback_buffer.getNumSamples()) {
+            std::cout << "Internal Playback Buffer Resized" << std::endl;;
             internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), (numSamples) * 2);
         }
 
@@ -108,13 +111,13 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
                 //if we check every grain and nothing is available end loop
                 for (int i = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++i < N_GRAINS + 1;);
                 // turn on free grain with params at grain_index
-                grains[grain_index].noteStarted(grain_size, grain_scan);
+                grains[grain_index].noteStarted(grain_size, grain_start);
             }
 
             // Render All Grains [only active ones will actually do anything]
             for (int i = 0; i < N_GRAINS; i++) {
                 // call render method on individual grains. this has to be FAST
-                write_pointer[i] += grains[i].getNextSample(pitched_samples);
+                write_pointer[i] += grains[i].getNextSample(playback_rate);
             }
         }
 
@@ -162,7 +165,7 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     );
     // set grain parameters
     grain_size = apvts.getRawParameterValue("GRAIN_SIZE")->load();
-    grain_scan = apvts.getRawParameterValue("GRAIN_SCAN")->load();
+    grain_start = apvts.getRawParameterValue("GRAIN_SCAN")->load();
 
     //set granulator parameters
     spray = apvts.getRawParameterValue("SPRAY")->load();

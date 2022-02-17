@@ -26,12 +26,13 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     AudioPluginAudioProcessor& processorRef;
 
     // Audio Buffers
-    juce::AudioBuffer<float> pitched_grain_buffer; // stores the current pitched note version of grain
+    // juce::AudioBuffer<float> pitched_grain_buffer; // stores the current pitched note version of grain
     juce::AudioBuffer<float> internal_playback_buffer; // to apply envelopes non-destructively
 
     // Pitching/Interpolation
-    juce::Interpolators::Lagrange interp;
-    int pitched_samples; // number of samples in pitched grain
+    // juce::Interpolators::Lagrange interp;
+    // int pitched_samples; // number of samples in pitched grain
+    float playback_rate{1.0f}; //TODO: Make this a smoothed value?
 
     //Grain list
     const int N_GRAINS{100};
@@ -46,8 +47,8 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     juce::ADSR env1;
 
     //Grain User Parameters
-    float grain_size; // percentage of grain to read in 0 to 1
-    float grain_scan;
+    float grain_size; // length of grain in ms
+    float grain_start; // percentage of grain to start at in (0, 1)
 
     //Granulator User Parameters
     float spray; //randomness (0-1)
