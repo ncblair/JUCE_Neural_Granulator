@@ -2,29 +2,48 @@
 #include <JuceHeader.h>
 
 class Grain {
-  public: 
-    void noteStarted(float size, float scan);
-    void prepareToPlay(double sampleRate, juce::AudioBuffer<float>* grain);
-    float getNextSample(int numSamplesInSourceBuffer);
+  public:
+
+    /**
+     * Initialization
+     */
+    void prepareToPlay(double sampleRate, juce::AudioBuffer<float>* buf);
+
+    /**
+     * Called at the grain rate.
+     * 
+     * size: size of morph_buf used in ms
+     * start: offset from start of morph_buf, percentage [0,1]
+     * 
+     */ 
+    void noteStarted(float size, float start);
+
+
+    /**
+     * Called at the audio sample rate.
+     * 
+     * playback_rate: how fast we'll move through the buffer
+     */
+    float getNextSample(float playback_rate);
+
+    /**
+     * Return true if the grain is playing, o.w. return false.
+     */
     bool isActive();
   private:
     //Actual Source
-    juce::AudioBuffer<float>* source{nullptr};
+    juce::AudioBuffer<float>* buf{nullptr};
+    float sample_rate_ms{48};
 
-    // For now, we will use an ADSR window on each grain
-    // TODO: Consider switching this to Expodec, Gaussian, Rexpodec. 
-    //  OR: Even better, connect this to a GUI envelope. 
-    juce::ADSR grain_env;
-    
 
     //Voice Housekeeping
     bool note_on{false};
-    float percent_elapsed{0.0f};
+    float elapsed_ms{0.0f};
     int cur_sample{0};
 
     //Grain Parameters
     float grain_size; // length of grain in seconds
-    float grain_scan; // position in buffer normalized from 0 to 1
+    float grain_start; // position in buffer normalized from 0 to 1
 
     // int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
 };
