@@ -39,7 +39,7 @@ class Grain {
     //Voice Housekeeping
     bool note_on{false};
     float elapsed_ms{0.0f};
-    int cur_sample{0};
+    float cur_sample{0.0f};
 
     //Grain Parameters
     float grain_size; // length of grain in seconds

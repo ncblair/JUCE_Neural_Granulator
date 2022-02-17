@@ -145,7 +145,7 @@ bool GranulatorVoice::trigger() {
     trigger_helper += density;
     if (trigger_helper > processorRef.GRAIN_SAMPLE_RATE * spray_factor) {
         trigger_helper = 0.0;
-        spray_factor = random.nextFloat()*2.0f;
+        spray_factor = 1.0f + spray * (random.nextFloat()*2.0f - 1);
         return true;
     }
     return false;

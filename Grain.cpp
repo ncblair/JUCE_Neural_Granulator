@@ -19,7 +19,7 @@ float getNextSample(float playback_rate) {
         read_pointer = buf.getReadPointer(0); // do we move this outside
 
         // if we reach the end of the buffer, set cur_sample to 0 (circular buffer)
-        while (cur_sample >= buf->getNumSamples()) {
+        while (cur_sample + 1 >= buf->getNumSamples()) {
             cur_sample -= buf->getNumSamples();
         }
         // calculate what percent of the source sample we've gone through
@@ -31,12 +31,12 @@ float getNextSample(float playback_rate) {
         }
 
         // TODO: multiply by grain envelope
-        auto v1 = int(cur_sample);
-        auto v2 = int(cur_sample) + 1;
-        auto a = cur_sample - v1;
-        auto res = read_pointer[v1] * (1 - a) + a * read_pointer[v2];
+        const auto v1 = int(cur_sample);
+        const auto v2 = int(cur_sample) + 1;
+        const auto a = cur_sample - v1;
+        const auto result = read_pointer[v1] * (1 - a) + a * read_pointer[v2];
         cur_sample += playback_rate;
-        return res;
+        return result;
     }
     else {
         return 0.0f;
