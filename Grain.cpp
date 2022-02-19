@@ -1,7 +1,7 @@
 #include "Grain.h"
 
-void Grain::prepareToPlay(double sampleRate, juce::AudioBuffer<float>* buf) {
-    this->buf = buf;
+void Grain::prepareToPlay(double sampleRate, std::atomic<juce::AudioBuffer<float>*>buf_atomic) {
+    this->buf_atomic = buf_atomic;
     sample_rate_ms = sampleRate / 1000;
 }
 
@@ -16,10 +16,11 @@ void Grain::noteStarted(float size, float start) {
 float getNextSample(float playback_rate) {
 
     if isActive() {
+        auto buf = buf_atomic.load();
         read_pointer = buf.getReadPointer(0); // do we move this outside
 
         // if we reach the end of the buffer, set cur_sample to 0 (circular buffer)
-        while (cur_sample + 1 >= buf->getNumSamples()) {
+        while (cur_sample > buf->getNumSamples() - 2) {
             cur_sample -= buf->getNumSamples();
         }
         // calculate what percent of the source sample we've gone through

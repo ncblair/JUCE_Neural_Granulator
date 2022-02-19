@@ -27,7 +27,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     }
     granulator.setVoiceStealingEnabled(true);
 
+    // Disable mpe
     // granulator.enableLegacyMode(2);
+    
 
     zone_layout.clearAllZones();
     zone_layout.setLowerZone(15, 48, 2);
@@ -308,16 +310,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         [](juce::String text) {return text.trimCharactersAtEnd (" hz").getFloatValue();}
     ));
 
-    auto grain_env_types = juce::StringArray({"Expodec", "Gaussian", "Rexpodec"});
-    params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        "GRAIN_ENV_TYPE",  // parameter ID
-        "Grain Env Type",  // parameter name
-        grain_env_types, //String Array of options
-        0, //default index
-        "type of grain envelope (expodec, gaussian, rexpodec)", // parameter label (description?)
-        [grain_env_types](int index, int maximumStringLength) {return grain_env_types[index] + " grain env type";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" grain env type").getFloatValue();}
-    ));
+    // auto grain_env_types = juce::StringArray({"Expodec", "Gaussian", "Rexpodec"});
+    // params.push_back(std::make_unique<juce::AudioParameterChoice>(
+    //     "GRAIN_ENV_TYPE",  // parameter ID
+    //     "Grain Env Type",  // parameter name
+    //     grain_env_types, //String Array of options
+    //     0, //default index
+    //     "type of grain envelope (expodec, gaussian, rexpodec)", // parameter label (description?)
+    //     [grain_env_types](int index, int maximumStringLength) {return grain_env_types[index] + " grain env type";},
+    //     [](juce::String text) {return text.trimCharactersAtEnd (" grain env type").getFloatValue();}
+    // ));
     
     return {params.begin(), params.end()};
 }

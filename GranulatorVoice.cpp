@@ -82,6 +82,13 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
 
     //Set up Processor Ref
     processorRef = p;
+
+    // define the pointer to our internal buffer
+    write_pointer = internal_playback_buffer.getWritePointer(0);
+
+    for (int i = 0; i < N_GRAINS; ++i) {
+        grains[i].prepareToPlay(sampleRate, processorRef.grain_buffer_ptr_atomic);
+    }
 }
 
 void GranulatorVoice::setCurrentSampleRate (double newRate) {
@@ -94,14 +101,11 @@ void GranulatorVoice::setCurrentSampleRate (double newRate) {
 void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer, int startSample, int numSamples) {
     if (isActive()) {
         //check if we need to increase the size of our playback buffer (shouldn't happen hopefully)
-        if (numSamples > internal_playback_buffer.getNumSamples()) {
+        while (numSamples > internal_playback_buffer.getNumSamples()) {
             std::cout << "Internal Playback Buffer Resized" << std::endl;;
-            internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), (numSamples) * 2);
+            internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), numSamples * 2);
+            write_pointer = internal_playback_buffer.getWritePointer(0);
         }
-
-        // get write pointer to internal playback buffer
-        // TODO: pre-allocate this?
-        auto write_pointer = internal_playback_buffer.getWritePointer(0);
 
         // We will process everything one sample at a time (we might need to trigger a new grain at a certain sample)
         for (int i = 0; i < numSamples; ++i) {
@@ -122,7 +126,7 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         }
 
         //Apply ADSR Envelope
-        env1.applyEnvelopeToBuffer(internal_playback_buffer, startSample, numSamples);
+        env1.applyEnvelopeToBuffer(internal_playback_buffer, 0, numSamples);
 
         // Add to Output Buffer with Gain Applied
         for (int c = 0; c < outputBuffer.getNumChannels; c++) {
@@ -170,6 +174,6 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     //set granulator parameters
     spray = apvts.getRawParameterValue("SPRAY")->load();
     density = apvts.getRawParameterValue("DENSITY")->load();
-    grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
+    // grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
 }
 

@@ -35,9 +35,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     spray_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "SPRAY", spray_slider);
     addAndMakeVisible(density_slider);
     density_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "DENSITY", density_slider);
-    addAndMakeVisible(grain_env_type_combo_box);
-    grain_env_type_combo_box.addItemList({"Expodec", "Gaussian", "Rexpodec"}, 1);
-    grain_env_type_combo_box_attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processorRef.apvts, "GRAIN_ENV_TYPE", grain_env_type_combo_box);
+    // addAndMakeVisible(grain_env_type_combo_box);
+    // grain_env_type_combo_box.addItemList({"Expodec", "Gaussian", "Rexpodec"}, 1);
+    // grain_env_type_combo_box_attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processorRef.apvts, "GRAIN_ENV_TYPE", grain_env_type_combo_box);
 
 }
 
@@ -69,6 +69,6 @@ void AudioPluginAudioProcessorEditor::resized()
 
     spray_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
     density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);
-    grain_env_type_combo_box.setBounds(getWidth() / 2.0 - 100., 450, 200, 50);
+    // grain_env_type_combo_box.setBounds(getWidth() / 2.0 - 100., 450, 200, 50);
 
 }

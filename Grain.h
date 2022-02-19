@@ -7,7 +7,7 @@ class Grain {
     /**
      * Initialization
      */
-    void prepareToPlay(double sampleRate, juce::AudioBuffer<float>* buf);
+    void prepareToPlay(double sampleRate, std::atomic<juce::AudioBuffer<float>*> buf_atomic);
 
     /**
      * Called at the grain rate.
@@ -32,7 +32,7 @@ class Grain {
     bool isActive();
   private:
     //Actual Source
-    juce::AudioBuffer<float>* buf{nullptr};
+    std::atomic<juce::AudioBuffer<float>*> buf_atomic{nullptr};
     float sample_rate_ms{48};
 
 

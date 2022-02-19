@@ -15,8 +15,8 @@ void TorchThread::gen_new_grain() {
     // mean[0] = 3.5;
     // mean[1] = 1;
     at::Tensor normal = torch::randn_like(*latent_shape)*0.1;
-    mean[0][0] = 6. * x() - 3;
-    mean[0][1] = 6. * y() - 3;
+    mean[0][0] = 6. * x.load() - 3;
+    mean[0][1] = 6. * y.load() - 3;
     // mean[0][2] = 4. * x + 2;
     // mean[0][4] = 4. * y + 2;
     std::vector<torch::jit::IValue> inputs;
@@ -46,10 +46,10 @@ void TorchThread::run() {
         if x and y changed during call to gen_new_grain()
         then re-run gen_new_grain() on the new position
         */
-        while ((temp_x != x()) || (temp_y != y())) {
+        while ((temp_x != x.load()) || (temp_y != y.load())) {
             // note x and y values before generating the grain
-            temp_x = x();
-            temp_y = y();
+            temp_x = x.load();
+            temp_y = y.load();
             gen_new_grain();
         }
         /*

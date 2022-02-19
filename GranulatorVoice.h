@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Grain.h"
 
 class GranulatorVoice : public juce::MPESynthesiserVoice {
   public: 
@@ -17,7 +18,6 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     bool isActive() const override;
     bool trigger();
 
-    //Custom Methods
     void update_parameters(juce::AudioProcessorValueTreeState& apvts);
     // void replace_audio(const at::Tensor& grain); //MOVE TO PLUGIN PROCESSOR
 
@@ -28,6 +28,7 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     // Audio Buffers
     // juce::AudioBuffer<float> pitched_grain_buffer; // stores the current pitched note version of grain
     juce::AudioBuffer<float> internal_playback_buffer; // to apply envelopes non-destructively
+    float* writer_pointer;
 
     // Pitching/Interpolation
     // juce::Interpolators::Lagrange interp;
@@ -53,7 +54,6 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     //Granulator User Parameters
     float spray; //randomness (0-1)
     float density; //ms (could scale with note, not sure)
-    int grain_env_type; //Expodec = 0, Gaussian = 1, Rexpodec = 2
 
     //Granulator Internal Variables
     float gain; // 0 to 1, based on velocity

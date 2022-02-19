@@ -43,8 +43,8 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> spray_slider_attachment;
     juce::Slider density_slider;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> density_slider_attachment;
-    juce::ComboBox grain_env_type_combo_box;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> grain_env_type_combo_box_attachment;
+    // juce::ComboBox grain_env_type_combo_box;
+    // std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> grain_env_type_combo_box_attachment;
     //==============================================================================
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
