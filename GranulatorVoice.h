@@ -2,6 +2,7 @@
 
 #include <JuceHeader.h>
 #include "Grain.h"
+#include "PluginProcessor.h"
 
 class GranulatorVoice : public juce::MPESynthesiserVoice {
   public: 
@@ -12,7 +13,7 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     void notePressureChanged() override;
     void noteTimbreChanged() override;
     void noteKeyStateChanged() override;
-    void prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels, AudioPluginAudioProcessor& p);
+    void prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels, AudioPluginAudioProcessor* p);
     void setCurrentSampleRate (double newRate) override;
     void renderNextBlock (juce::AudioBuffer< float > &outputBuffer, int startSample, int numSamples) override;
     bool isActive() const override;
@@ -23,12 +24,11 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
 
   private:
     // Reference to Audio Processor (Which points to the current grain buffer)
-    AudioPluginAudioProcessor& processorRef;
+    AudioPluginAudioProcessor* processor_ptr;
 
     // Audio Buffers
     // juce::AudioBuffer<float> pitched_grain_buffer; // stores the current pitched note version of grain
     juce::AudioBuffer<float> internal_playback_buffer; // to apply envelopes non-destructively
-    float* writer_pointer;
 
     // Pitching/Interpolation
     // juce::Interpolators::Lagrange interp;
@@ -37,7 +37,7 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
 
     //Grain list
     const int N_GRAINS{100};
-    std::array<Grain, N_GRAINS> grains; // Each voice has a list of grains
+    std::vector<Grain> grains; // Each voice has a list of grains
     int grain_index = 0.0;
 
     //Voice Housekeeping
@@ -61,6 +61,6 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     //Grain Scheduler
     int trigger_helper{0};
     float spray_factor{0.0f};
-    juce::Random::Random random{1111}; // seed 1111
+    juce::Random random{1111}; // seed 1111
     
 };

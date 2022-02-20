@@ -3,6 +3,9 @@
 #include <JuceHeader.h>
 #include <torch/torch.h>
 
+#include "PluginEditor.h"
+
+
 class TorchThread : public juce::Thread {
     private: 
         torch::jit::script::Module model;

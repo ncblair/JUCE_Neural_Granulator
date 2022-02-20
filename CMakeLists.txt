@@ -22,7 +22,7 @@ project(NEURAL_GRANULATOR VERSION 0.0.1)
 # include that subdirectory as part of the build.
 
 find_package(JUCE CONFIG REQUIRED)        # If you've installed JUCE to your system
-find_package(Torch REQUIRED)
+# find_package(Torch REQUIRED)
 # or
 # add_subdirectory(../NeuralGranulator/JUCE_CPP/JUCE) # If you've put JUCE in a subdirectory called JUCE
 
@@ -74,7 +74,8 @@ target_sources(NEURAL_GRANULATOR
         PluginProcessor.cpp
         GranulatorVoice.cpp
         Grain.cpp
-        TorchThread.cpp)
+        # TorchThread.cpp
+)
 
 # `target_compile_definitions` adds some preprocessor definitions to our target. In a Projucer
 # project, these might be passed in the 'Preprocessor Definitions' field. JUCE modules also make use
@@ -110,28 +111,28 @@ target_link_libraries(NEURAL_GRANULATOR
         # AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
         juce::juce_dsp
-        torch
+        # torch
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
 
 
-set_property(TARGET NEURAL_GRANULATOR PROPERTY CXX_STANDARD 14)
+# set_property(TARGET NEURAL_GRANULATOR PROPERTY CXX_STANDARD 14)
 
-# The following code block is suggested to be used on Windows.
-# According to https://github.com/pytorch/pytorch/issues/25457,
-# the DLLs need to be copied to avoid memory errors.
-if (MSVC)
-    file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
-    add_custom_command(TARGET NEURAL_GRANULATOR
-                        POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E make_directory 
-                        "$<TARGET_FILE_DIR:NEURAL_GRANULATOR>/Standalone")
+# # The following code block is suggested to be used on Windows.
+# # According to https://github.com/pytorch/pytorch/issues/25457,
+# # the DLLs need to be copied to avoid memory errors.
+# if (MSVC)
+#     file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+#     add_custom_command(TARGET NEURAL_GRANULATOR
+#                         POST_BUILD
+#                         COMMAND ${CMAKE_COMMAND} -E make_directory 
+#                         "$<TARGET_FILE_DIR:NEURAL_GRANULATOR>/Standalone")
                         
-    add_custom_command(TARGET NEURAL_GRANULATOR
-                        POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        ${TORCH_DLLS}
-                        "$<TARGET_FILE_DIR:NEURAL_GRANULATOR>/Standalone")
-endif (MSVC)
+#     add_custom_command(TARGET NEURAL_GRANULATOR
+#                         POST_BUILD
+#                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#                         ${TORCH_DLLS}
+#                         "$<TARGET_FILE_DIR:NEURAL_GRANULATOR>/Standalone")
+# endif (MSVC)

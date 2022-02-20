@@ -23,7 +23,7 @@ void GranulatorVoice::noteStarted() {
     env1.noteOn();
 
     // set the pitch of this midi voice
-    notePitchbenChanged();
+    notePitchbendChanged();
 
     // reset note trigger
     trigger_helper = 0;
@@ -70,7 +70,10 @@ void GranulatorVoice::noteKeyStateChanged() {
     
 }
 
-void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels, AudioPluginAudioProcessor& p) {
+void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int outputChannels, AudioPluginAudioProcessor* p) {
+    // Set up grain buffer
+    grains.resize(N_GRAINS);
+
     // Set up Envelope
     env1.setSampleRate(sampleRate);
 
@@ -81,13 +84,11 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
     // pitched_grain_buffer.clear();
 
     //Set up Processor Ref
-    processorRef = p;
+    processor_ptr = p;
 
-    // define the pointer to our internal buffer
-    write_pointer = internal_playback_buffer.getWritePointer(0);
 
     for (int i = 0; i < N_GRAINS; ++i) {
-        grains[i].prepareToPlay(sampleRate, processorRef.grain_buffer_ptr_atomic);
+        grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf_ptr_atomic));
     }
 }
 
@@ -104,8 +105,11 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         while (numSamples > internal_playback_buffer.getNumSamples()) {
             std::cout << "Internal Playback Buffer Resized" << std::endl;;
             internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), numSamples * 2);
-            write_pointer = internal_playback_buffer.getWritePointer(0);
+            
         }
+
+        internal_playback_buffer.clear();
+        auto write_pointer = internal_playback_buffer.getWritePointer(0);
 
         // We will process everything one sample at a time (we might need to trigger a new grain at a certain sample)
         for (int i = 0; i < numSamples; ++i) {
@@ -113,15 +117,15 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
             if (trigger()) {            
                 // set grain_index to next free grain using circular buffer
                 //if we check every grain and nothing is available end loop
-                for (int i = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++i < N_GRAINS + 1;);
+                for (int j = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++j < N_GRAINS + 1;);
                 // turn on free grain with params at grain_index
                 grains[grain_index].noteStarted(grain_size, grain_start);
             }
 
             // Render All Grains [only active ones will actually do anything]
-            for (int i = 0; i < N_GRAINS; i++) {
+            for (int j = 0; j < N_GRAINS; j++) {
                 // call render method on individual grains. this has to be FAST
-                write_pointer[i] += grains[i].getNextSample(playback_rate);
+                write_pointer[i] += grains[j].getNextSample(playback_rate);
             }
         }
 
@@ -129,9 +133,10 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         env1.applyEnvelopeToBuffer(internal_playback_buffer, 0, numSamples);
 
         // Add to Output Buffer with Gain Applied
-        for (int c = 0; c < outputBuffer.getNumChannels; c++) {
+        for (int c = 0; c < outputBuffer.getNumChannels(); c++) {
             outputBuffer.addFrom(c, startSample, internal_playback_buffer, c, 0, numSamples, gain);
         }
+
 
         // if we reached the end of our envelope, turn the note off
         if (!env1.isActive()) {
@@ -150,7 +155,8 @@ bool GranulatorVoice::trigger() {
     // spray_factor is then set to a random float between 0 and 2 that determines how soon the
     //  next grain arrives
     trigger_helper += density;
-    if (trigger_helper > processorRef.GRAIN_SAMPLE_RATE * spray_factor) {
+    if (trigger_helper > processor_ptr->GRAIN_SAMPLE_RATE * spray_factor) {
+        std::cout << "trigger " << std::endl;
         trigger_helper = 0.0;
         spray_factor = 1.0f + spray * (random.nextFloat()*2.0f - 1);
         return true;

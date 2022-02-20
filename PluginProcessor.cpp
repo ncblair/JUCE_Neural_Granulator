@@ -15,9 +15,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        logger(juce::File("/users/ncblair/COMPSCI/JUCE_Harmonic_Oscillator/log.txt"), "Damped Log\n")
 {
     //set up grain buffers
-    grain_buffer.setSize(1, 24000);
+    morph_buf.setSize(1, 24000);
     temp_buffer.setSize(1, 24000);
-    grain_buffer_ptr_atomic.store(&grain_buffer);
+    morph_buf_ptr_atomic.store(&morph_buf);
     temp_buffer_ptr_atomic.store(&temp_buffer);
 
     // init granulator
@@ -34,6 +34,8 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     zone_layout.clearAllZones();
     zone_layout.setLowerZone(15, 48, 2);
     granulator.setZoneLayout(zone_layout);
+
+    std::cout << "OUTPUT" << std::endl;
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -115,7 +117,7 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<GranulatorVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree. Use the Grain sample rate, not the hardware one
-            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), *this);
+            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), this);
         }
     }
 
@@ -171,8 +173,10 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // If a new grain is ready, switch the pointers atomically
     if (new_grain_ready.load()) {
-        grain_buffer_ptr_atomic.store(temp_ptr);
-        temp_buffer_ptr_atomic.store(grain_ptr);
+        auto temp_ptr = temp_buffer_ptr_atomic.load();
+        auto morph_ptr = morph_buf_ptr_atomic.load();
+        morph_buf_ptr_atomic.store(temp_ptr);
+        temp_buffer_ptr_atomic.store(morph_ptr);
         new_grain_ready.store(false);
     }
     
@@ -193,9 +197,19 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     // Render next block for each granulator voice on resample buffer
+    resample_buffer.clear();
     granulator.renderNextBlock(resample_buffer, midiMessages, 0, buffer.getNumSamples());
 
-
+    if (play_sample.load()) {
+        auto mbuf = *morph_buf_ptr_atomic.load();
+        auto num_samples_now = juce::jmin(float(num_samples), mbuf.getNumSamples() - file_playback_counter);
+        resample_buffer.addFrom(0, 0, mbuf, 0, file_playback_counter, num_samples_now);
+        file_playback_counter += num_samples_now;
+        if (file_playback_counter == mbuf.getNumSamples()) {
+            file_playback_counter = 0;
+            play_sample.store(false);
+        }
+    }
    
     for (int c = 0; c < totalNumOutputChannels; ++c) {
         // resample temporary buffer samples to the sample rate of the output buffer
@@ -206,6 +220,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // internal clipping
         juce::FloatVectorOperations::clip  (buffer.getWritePointer(c), buffer.getWritePointer(c),
                                             -1.0f, 1.0f, buffer.getNumSamples());
+    }
               
 }
 
@@ -236,18 +251,26 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
     juce::ignoreUnused (data, sizeInBytes);
 }
 
-void AudioPluginAudioProcessor::replace_grain(const at::Tensor& grain) {
-    // Runs on Torch Thread
+// void AudioPluginAudioProcessor::replace_grain(const at::Tensor& tensor) {
+//     // Runs on Torch Thread
+
+//     // Wait until pointers have been swapped in audio thread
+//     while (new_grain_ready.load());
+    
+//     auto temp_ptr = temp_buffer_ptr_atomic.load();
+//     for (int channel = 0; channel < temp_ptr->getNumChannels(); ++channel)
+//     {
+//         temp_ptr->copyFrom(0, 0, tensor.data_ptr<float>(), temp_ptr->getNumSamples());
+//     }
+//     new_grain_ready.store(true);
+// }
+
+void AudioPluginAudioProcessor::replace_morph_buf(juce::AudioBuffer<float>* new_buffer) {
+    // Runs on Editor Thread
 
     // Wait until pointers have been swapped in audio thread
     while (new_grain_ready.load());
-    
-    auto temp_ptr = temp_buffer_ptr_atomic.load();
-    auto grain_ptr = grain_buffer_ptr_atomic.load();
-    for (int channel = 0; channel < temp_ptr->getNumChannels(); ++channel)
-    {
-        temp_ptr->copyFrom(0, 0, tensor.data_ptr<float>(), temp_ptr->getNumSamples());
-    }
+    temp_buffer_ptr_atomic.store(new_buffer);
     new_grain_ready.store(true);
 }
 
@@ -269,12 +292,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GRAIN_SIZE",  // parameter ID
         "Grain Size",  // parameter name
-        juce::NormalisableRange<float> (0.001f, 0.5f, 0.001f),  // range
-        0.5f,         // default value
-        "Length of grain in seconds", // parameter label (description?)
+        juce::NormalisableRange<float> (1.0f, 1000.0f, 1.0f),  // range
+        500.0f,         // default value
+        "Length of grain in ms", // parameter label (description?)
         juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " seconds";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" seconds").getFloatValue();}
+        [](float value, int maximumStringLength) {return juce::String (value) + " ms";},
+        [](juce::String text) {return text.trimCharactersAtEnd (" ms").getFloatValue();}
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -302,8 +325,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "DENSITY",  // parameter ID
         "Density",  // parameter name
-        juce::NormalisableRange<float> (2.0f, 1000.0f, 0.0f, 0.3f),  // range
-        2.0f,         // default value
+        juce::NormalisableRange<float> (1.0f, 1000.0f, 0.0f, 0.3f),  // range
+        1.0f,         // default value
         "Average Rate of grain playback per voice in hz", // parameter label (description?)
         juce::AudioProcessorParameter::Category::genericParameter,
         [](float value, int maximumStringLength) {return juce::String (value) + " hz";},

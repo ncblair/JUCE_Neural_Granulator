@@ -45,6 +45,15 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> density_slider_attachment;
     // juce::ComboBox grain_env_type_combo_box;
     // std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> grain_env_type_combo_box_attachment;
+
+    // File Loading
+    juce::TextButton open_button;
+    std::unique_ptr<juce::FileChooser> file_chooser;
+    juce::AudioFormatManager format_manager;
+    void openButtonClicked();
+
+    juce::TextButton play_button;
+    void playButtonClicked();
     //==============================================================================
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
