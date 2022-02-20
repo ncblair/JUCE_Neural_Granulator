@@ -24,7 +24,7 @@ float Grain::getNextSample(float playback_rate) {
     if (isActive()) {
         auto buf = buf_atomic_ptr->load();
         auto read_pointer = buf->getReadPointer(0); // do we move this outside
-        
+
         // if we reach the end of the buffer, set cur_sample to 0 (circular buffer)
         while (cur_sample > buf->getNumSamples() - 2) {
             std::cout << "WRAP " << playback_rate << std::endl;
@@ -64,39 +64,39 @@ bool Grain::isActive() {
 /**** tukey Class Implementation ****/
 
 float tukey::operator()(float playback_rate) {
-  if (currentS < (alpha_totalS) / 2) {
-    value = 0.5 * (1 + juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - 1) * M_PI));
-    currentS += playback_rate;
-  } else if (currentS <= totalS * (1 - alpha / 2)) {
-    value = 1;
-    currentS += playback_rate;
-  } else if (currentS <= totalS) {
-    value =
-        0.5 *
-        (1 +
-         juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - (2 / alpha) + 1) * M_PI));
-    currentS += playback_rate;
-  } else
-    currentS = 0;
-  return value;
+    if (currentS < (alpha_totalS) / 2) {
+        value = 0.5 * (1 + juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - 1) * M_PI));
+        currentS += playback_rate;
+    } else if (currentS <= totalS * (1 - alpha / 2)) {
+        value = 1;
+        currentS += playback_rate;
+    } else if (currentS <= totalS) {
+        value =
+            0.5 *
+            (1 +
+            juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - (2 / alpha) + 1) * M_PI));
+        currentS += playback_rate;
+    } else
+        currentS = 0;
+    return value;
 }
 
 void tukey::set() {
-  if (totalS <= 0)
-    totalS = 1;
-  currentS = 0;
-  value = 0;
-  alpha_totalS = totalS * alpha;
+    if (totalS <= 0)
+        totalS = 1;
+    currentS = 0;
+    value = 0;
+    alpha_totalS = totalS * alpha;
 }
 
 void tukey::set(float seconds, float alpha) {
-  this->alpha = alpha;
-  totalS = seconds * mSamplingRate;
-  set();
+    this->alpha = alpha;
+    totalS = seconds * mSamplingRate;
+    set();
 }
 
 void tukey::set(float seconds) {
-  totalS = seconds * mSamplingRate;
-  set();
+    totalS = seconds * mSamplingRate;
+    set();
 }
 
