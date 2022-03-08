@@ -21,15 +21,9 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     }
     granulator.setVoiceStealingEnabled(true);
 
-    // Disable mpe
-    // granulator.enableLegacyMode(2);
-    
-
     zone_layout.clearAllZones();
     zone_layout.setLowerZone(15, 48, 2);
     granulator.setZoneLayout(zone_layout);
-
-    std::cout << "OUTPUT" << std::endl;
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
@@ -120,6 +114,8 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
     interpolators[0] = juce::Interpolators::Lagrange();
     interpolators[1] = juce::Interpolators::Lagrange();
 
+    temp_morph_buf.setSize(1, sampleRate);
+
 }
 
 void AudioPluginAudioProcessor::releaseResources()
@@ -165,17 +161,29 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // // If a new grain is ready, switch the pointers atomically
-    // if (new_grain_ready.load()) {
-    //     auto temp_ptr = temp_buffer_ptr_atomic.load();
-    //     auto morph_ptr = morph_buf_ptr_atomic.load();
-    //     morph_buf_ptr_atomic.store(temp_ptr);
-    //     temp_buffer_ptr_atomic.store(morph_ptr);
-    //     new_grain_ready.store(false);
-    // }
+    // update soundfiles parameters and buffers
+    sounds[0].update_parameters(apvts.getRawParameterValue("FILE_SCAN_0")->load());
+    sounds[1].update_parameters(apvts.getRawParameterValue("FILE_SCAN_1")->load());
+    morph_amt = apvts.getRawParameterValue("MORPH")->load()
+    
+    // Update Morph Buf
+    // TODO: This goes on background thread in future 
+    if (sounds[0].scan_changed.load() || sounds[1].scan_changed.load()) {
+        // DO MORPH // SIMPLE CROSSFADE
+        temp_morph_buf.copyFrom (0, 0, *(sounds[0].region_buffer.load()), 0, 0, sounds[0].get_num_samples());
+        temp_morph_buf.applyGain(1.0f - morph_amt);
+        temp_morph_buf.addFrom(0, 0, *(sounds[1].region_buffer.load()), 0, 0, sounds[1].get_num_samples(), morph_amt);
+
+        sounds[0].scan_changed.store(false);
+        sounds[1].scan_changed.store(false);
+    }
+    morph_buf.queue_new_buffer(temp_morph_buf);
+
+    // update buffer
     morph_buf.update();
     
-    //Update Parameters on Audio Thread in each voice
+
+    // Update Parameters on Audio Thread in each voice
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<juce::MPESynthesiserVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree
@@ -184,7 +192,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         }
     }
 
-    //allocate more to resample buffer if need be. ideally this won't be called
+    // allocate more to resample buffer if need be. ideally this won't be called
     int num_samples = int(ceil(buffer.getNumSamples() * grain_sample_rate_ratio));
     if (num_samples > resample_buffer.getNumSamples()) {
         //hope this doesn't happen (allocating in audio thread)
@@ -195,17 +203,17 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     resample_buffer.clear();
     granulator.renderNextBlock(resample_buffer, midiMessages, 0, buffer.getNumSamples());
 
-    if (play_sample.load()) {
-        auto mbuf = *morph_buf.load();
-        auto num_samples_now = juce::jmin(float(num_samples), mbuf.getNumSamples() - file_playback_counter);
-        resample_buffer.addFrom(0, 0, mbuf, 0, file_playback_counter, num_samples_now);
-        file_playback_counter += num_samples_now;
-        if (file_playback_counter == mbuf.getNumSamples()) {
-            file_playback_counter = 0;
-            play_sample.store(false);
-        }
-    }
-   
+    // if (play_sample.load()) {
+    //     auto mbuf = *morph_buf.load();
+    //     auto num_samples_now = juce::jmin(float(num_samples), mbuf.getNumSamples() - file_playback_counter);
+    //     resample_buffer.addFrom(0, 0, mbuf, 0, file_playback_counter, num_samples_now);
+    //     file_playback_counter += num_samples_now;
+    //     if (file_playback_counter == mbuf.getNumSamples()) {
+    //         file_playback_counter = 0;
+    //         play_sample.store(false);
+    //     }
+    // }
+    
     for (int c = 0; c < totalNumOutputChannels; ++c) {
         // resample temporary buffer samples to the sample rate of the output buffer
         interpolators[c].process   (grain_sample_rate_ratio, 
@@ -246,30 +254,6 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
     juce::ignoreUnused (data, sizeInBytes);
 }
 
-// void AudioPluginAudioProcessor::replace_grain(const at::Tensor& tensor) {
-//     // Runs on Torch Thread
-
-//     // Wait until pointers have been swapped in audio thread
-//     while (new_grain_ready.load());
-    
-//     auto temp_ptr = temp_buffer_ptr_atomic.load();
-//     for (int channel = 0; channel < temp_ptr->getNumChannels(); ++channel)
-//     {
-//         temp_ptr->copyFrom(0, 0, tensor.data_ptr<float>(), temp_ptr->getNumSamples());
-//     }
-//     new_grain_ready.store(true);
-// }
-
-// void AudioPluginAudioProcessor::replace_morph_buf(juce::AudioBuffer<float>* new_buffer) {
-//     // Runs on Editor Thread
-
-//     // Wait until pointers have been swapped in audio thread
-//     while (new_grain_ready.load());
-//     temp_buffer_ptr_atomic.store(new_buffer);
-//     new_grain_ready.store(true);
-// }
-
-
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
@@ -287,7 +271,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GRAIN_SIZE",  // parameter ID
         "Grain Size",  // parameter name
-        juce::NormalisableRange<float> (1.0f, 1000.0f, 1.0f),  // range
+        juce::NormalisableRange<float> (1.0f, 500.0f, 1.0f),  // range
         500.0f,         // default value
         "Length of grain in ms", // parameter label (description?)
         juce::AudioProcessorParameter::Category::genericParameter,
@@ -328,16 +312,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         [](juce::String text) {return text.trimCharactersAtEnd (" hz").getFloatValue();}
     ));
 
-    // auto grain_env_types = juce::StringArray({"Expodec", "Gaussian", "Rexpodec"});
-    // params.push_back(std::make_unique<juce::AudioParameterChoice>(
-    //     "GRAIN_ENV_TYPE",  // parameter ID
-    //     "Grain Env Type",  // parameter name
-    //     grain_env_types, //String Array of options
-    //     0, //default index
-    //     "type of grain envelope (expodec, gaussian, rexpodec)", // parameter label (description?)
-    //     [grain_env_types](int index, int maximumStringLength) {return grain_env_types[index] + " grain env type";},
-    //     [](juce::String text) {return text.trimCharactersAtEnd (" grain env type").getFloatValue();}
-    // ));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "MORPH",  // parameter ID
+        "Morph",  // parameter name
+        juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f),  // range
+        0.0f,         // default value
+        "Morph between file1 and file 2", // parameter label (description?)
+        juce::AudioProcessorParameter::Category::genericParameter,
+        [](float value, int maximumStringLength) {return juce::String (value) + " %";},
+        [](juce::String text) {return text.trimCharactersAtEnd (" %").getFloatValue();}
+    ));
+
+    for (int i = 0; i < 2; ++i) {
+        // per-file parameters
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            "FILE_SCAN_" + std::to_string(i),  // parameter ID
+            "File Scan " + std::to_string(i),  // parameter name
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f),  // range
+            0.0f,         // default value
+            "Position in file in [0, 1]", // parameter label (description?)
+            juce::AudioProcessorParameter::Category::genericParameter,
+            [](float value, int maximumStringLength) {return juce::String (value) + " position";},
+            [](juce::String text) {return text.trimCharactersAtEnd (" position").getFloatValue();}
+        ));
+    }
     
     return {params.begin(), params.end()};
 }

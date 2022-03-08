@@ -85,6 +85,9 @@ class SafeBuffer {
     int get_num_samples();
     int get_num_channels();
 
+    // // Run before any buffers are queued
+    // void prepareToPlay(int channels, int samples);
+
     // calling this class returns the cur buffer
     // const juce::AudioBuffer<float> operator()(){return *cur_buf_ptr_atomic.load()};
     
@@ -97,4 +100,8 @@ class SafeBuffer {
     juce::AudioBuffer<float> buf_2;
     // whether there is a buffer queued (i.e. ready to update/swap pointers)
     std::atomic<bool> ready_to_update{false};
+
+  private:
+    std::atomic<int> num_samples;
+    std::atomic<int> num_channels;
 };

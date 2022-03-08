@@ -70,12 +70,12 @@ juce::AudioBuffer<float>* SafeBuffer::load() {
 
 int SafeBuffer::get_num_samples() {
     // get number of samples
-    return load()->getNumSamples();
+    return num_samples.load();
 }
 
 int SafeBuffer::get_num_channels() {
     // get number of channels
-    return load()->getNumChannels();
+    return num_channels.load();
 }
 
 void SafeBuffer::queue_new_buffer(juce::AudioBuffer<float>* new_buffer) {
@@ -93,5 +93,14 @@ void SafeBuffer::update() {
         cur_buf_ptr_atomic.store(temp_ptr);
         temp_buf_ptr_atomic.store(cur_ptr);
         ready_to_update.store(false);
+
+        num_samples.store(cur_ptr->getNumSamples());
+        num_channels.store(cur_ptr->getNumChannels());
+
     }
 }
+
+// void SafeBuffer::set_size(int channels, int samples) {
+//     buf_1.setSize(channels, samples);
+//     buf_2.setSize(channels, samples);
+// }

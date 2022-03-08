@@ -8,7 +8,7 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 600);
+    setSize (800, 800);
 
     //==============================================================================
     //ADD AND MAKE VISIBLE USER INTERFACE ELEMENTS
@@ -35,20 +35,28 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     spray_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "SPRAY", spray_slider);
     addAndMakeVisible(density_slider);
     density_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "DENSITY", density_slider);
-    // addAndMakeVisible(grain_env_type_combo_box);
-    // grain_env_type_combo_box.addItemList({"Expodec", "Gaussian", "Rexpodec"}, 1);
-    // grain_env_type_combo_box_attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processorRef.apvts, "GRAIN_ENV_TYPE", grain_env_type_combo_box);
 
-    // Add open file button
-    addAndMakeVisible (&open_button);
-    open_button.setButtonText ("Open...");
-    open_button.onClick = [this] { openButtonClicked(); };
+    // Morphing Parameters
+    addAndMakeVisible(morph_slider);
+    morph_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "MORPH", morph_slider);
 
-    addAndMakeVisible (&play_button);
-    play_button.setButtonText ("Play...");
-    play_button.onClick = [this] { playButtonClicked(); };
+    // Add file parameters
+    for (int i = 0; i < 2; ++i) {
+        addAndMakeVisible (&file_open_buttons[i]);
+        file_open_buttons[i].setButtonText ("Open...");
+        file_open_buttons[i].onClick = [this] { open_file(i); };
 
-    format_manager.registerBasicFormats();
+        addAndMakeVisible(&file_start_sample_sliders[i]);
+        file_start_sample_attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            processorRef.apvts, "FILE_SCAN_" + std::to_string(i), file_start_sample_sliders[i]
+        );
+    }
+
+    // addAndMakeVisible (&play_button);
+    // play_button.setButtonText ("Play...");
+    // play_button.onClick = [this] { playButtonClicked(); };
+
+    // format_manager.registerBasicFormats();
 
 }
 
@@ -81,46 +89,52 @@ void AudioPluginAudioProcessorEditor::resized()
     spray_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
     density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);
     // grain_env_type_combo_box.setBounds(getWidth() / 2.0 - 100., 450, 200, 50);
-    open_button.setBounds(int(getWidth() / 2.0f - 100.f), 450, 200, 50);
-    play_button.setBounds(int(getWidth() / 2.0f - 100.f), 500, 200, 50);
+    file_open_buttons[0].setBounds(100, 500, 100, 50);
+    morph_slider.setBounds(300, 500, 100, 50);
+    file_open_buttons[1].setBounds(500, 500, 100, 50);
+    // play_button.setBounds(int(getWidth() / 2.0f - 100.f), 500, 200, 50);
 
 }
 
-void AudioPluginAudioProcessorEditor::openButtonClicked () {
-    // adapted from https://docs.juce.com/master/tutorial_playing_sound_files.html
-    file_chooser = std::make_unique<juce::FileChooser> ("Select a Wave file to play...", juce::File{}, "*.wav");
-    auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
-
-    file_chooser->launchAsync (chooserFlags, [this] (const FileChooser& fc)
-    {
-        auto file = fc.getResult();
-
-        if (file != File{})
-        {
-            auto* reader = format_manager.createReaderFor(file);
-
-            if (reader != nullptr)
-            {
-                const int num_channels = int(reader->numChannels);
-                const int num_samples = int(reader->lengthInSamples);
-                // get audio from file into an audio buffer
-                auto audio = new juce::AudioBuffer<float>(num_channels, num_samples);
-                reader->read(audio, 0, num_samples, 0, true, true);
-
-                // inform processor of the sample rate, num_samples, and audio_channels.
-                processorRef.morph_buf.queue_new_buffer(audio); 
-                processorRef.file1_sample_rate.store(reader->sampleRate);
-
-                // Change text to indicate process finished!    
-                open_button.setButtonText (file.getFileName());
-                processorRef.file1_loaded.store(true);
-            }
-        }
-    });
+void AudioPluginAudioProcessorEditor::open_file(int file_index) {
+    processorRef.sounds[file_index].load_file();
+    file_open_buttons[file_index].setButtonText(processorRef.sounds[file_index].file_name);
 }
 
-void AudioPluginAudioProcessorEditor::playButtonClicked () {
-    // adapted from https://docs.juce.com/master/tutorial_playing_sound_files.html
-    std::cout << "Play audio file";
-    processorRef.play_sample.store(true);
-}
+// void AudioPluginAudioProcessorEditor::openButtonClicked () {
+//     // adapted from https://docs.juce.com/master/tutorial_playing_sound_files.html
+//     file_chooser = std::make_unique<juce::FileChooser> ("Select a Wave file to play...", juce::File{}, "*.wav");
+//     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+
+//     file_chooser->launchAsync (chooserFlags, [this] (const FileChooser& fc)
+//     {
+//         auto file = fc.getResult();
+
+//         if (file != File{})
+//         {
+//             auto* reader = format_manager.createReaderFor(file);
+
+//             if (reader != nullptr)
+//             {
+//                 const int num_channels = int(reader->numChannels);
+//                 const int num_samples = int(reader->lengthInSamples);
+//                 // get audio from file into an audio buffer
+//                 auto audio = new juce::AudioBuffer<float>(num_channels, num_samples);
+//                 reader->read(audio, 0, num_samples, 0, true, true);
+
+//                 // inform processor of the sample rate, num_samples, and audio_channels.
+//                 processorRef.morph_buf.queue_new_buffer(audio); 
+//                 processorRef.file1_sample_rate.store(reader->sampleRate);
+
+//                 // Change text to indicate process finished!    
+//                 open_button.setButtonText (file.getFileName());
+//                 processorRef.file1_loaded.store(true);
+//             }
+//         }
+//     });
+// }
+
+// void AudioPluginAudioProcessorEditor::playButtonClicked () {
+//     std::cout << "Play audio file";
+//     processorRef.play_sample.store(true);
+// }

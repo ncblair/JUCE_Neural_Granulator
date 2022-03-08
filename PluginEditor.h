@@ -46,14 +46,23 @@ private:
     // juce::ComboBox grain_env_type_combo_box;
     // std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> grain_env_type_combo_box_attachment;
 
-    // File Loading
-    juce::TextButton open_button;
-    std::unique_ptr<juce::FileChooser> file_chooser;
-    juce::AudioFormatManager format_manager;
-    void openButtonClicked();
+    //Morphing Slider
+    juce::Slider morph_slider;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> morph_slider_attachment;
 
-    juce::TextButton play_button;
-    void playButtonClicked();
+    // File Loading
+    juce::TextButton file_open_buttons[2];
+
+    // File Position
+    juce::Slider file_start_sample_sliders[2];
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> file_start_sample_attachments[2];
+
+    // std::unique_ptr<juce::FileChooser> file_chooser;
+    // juce::AudioFormatManager format_manager;
+    void open_file(int file_index);
+
+    // juce::TextButton play_button;
+    // void playButtonClicked();
     //==============================================================================
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)

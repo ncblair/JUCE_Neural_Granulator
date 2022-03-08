@@ -55,27 +55,25 @@ public:
     // void replace_grain(const at::Tensor& tensor);
     void replace_morph_buf(juce::AudioBuffer<float>* new_buffer);
 
-    // audio file1 stuff
-    std::atomic<bool> file1_loaded{false};
+    // // audio file1 stuff
+    // std::atomic<bool> file1_loaded{false};
     // std::atomic<juce::AudioBuffer<float>*> file1_pointer{nullptr};
-    std::atomic<float> file1_sample_rate;
+    // std::atomic<float> file1_sample_rate;
 
     SafeBuffer morph_buf;
-    // // Audio Buffer ptr used by granulator voices.
-    // // Handle current audio grain
-    // std::atomic<juce::AudioBuffer<float>*> morph_buf_ptr_atomic;
-    // std::atomic<juce::AudioBuffer<float>*> temp_buffer_ptr_atomic;
-    // //two grain buffers. One is always temporary, one is always active
-    // juce::AudioBuffer<float> morph_buf_1;
-    // juce::AudioBuffer<float> morph_buf_2;
-    // std::atomic<bool> new_grain_ready{false};
+    juce::AudioBuffer<float> temp_morph_buf;
+
+    // Two Sound Files can be loaded in
+    Soundfile sounds[2];
 
     //allow sample playback
-    std::atomic<bool> play_sample{false};
+    // std::atomic<bool> play_sample{false};
 
     
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
+
+
     
     // Granulator MPE
     juce::MPESynthesiser granulator;
@@ -85,12 +83,12 @@ private:
     juce::Interpolators::Lagrange interpolators[2];
     juce::AudioBuffer<float> resample_buffer; //resample from grain rate to hardware rate
 
-    
-
     // temporary/utilites
     double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
 
-    float file_playback_counter{0};
+    // float file_playback_counter{0};
+
+    float morph_amt;
     
 
     //==============================================================================
