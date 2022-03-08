@@ -1,21 +1,21 @@
 #pragma once
 
-#include <juceHeader.h>
+#include <JuceHeader.h>
 #include "utils.h"
 
-class Soundfile() {
+class Soundfile {
   public:
     // A soundfile is a circular buffer that has a region with current position and length
     Soundfile();
 
-    void load_file();
+    void load_file(juce::TextButton* button=nullptr);
     void update_parameters(float region_scan_arg);
     void queue_region_buffer();
 
     bool get_file_loaded();
     float get_num_samples();
-    juce::String file_name{"Open..."};
-    std::atomic<bool> file_loaded;
+    // juce::String file_name{"Open..."};
+    std::atomic<bool> file_loaded{false};
 
     // buffer and region
     SafeBuffer file_buffer;
@@ -36,4 +36,5 @@ class Soundfile() {
     std::atomic<double> sample_rate;
 
     std::atomic<float> region_scan{-1.0f};
-}
+    std::atomic<bool> new_region{false};
+};

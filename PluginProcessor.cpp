@@ -164,12 +164,14 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // update soundfiles parameters and buffers
     sounds[0].update_parameters(apvts.getRawParameterValue("FILE_SCAN_0")->load());
     sounds[1].update_parameters(apvts.getRawParameterValue("FILE_SCAN_1")->load());
-    morph_amt = apvts.getRawParameterValue("MORPH")->load()
+    
+    auto morph_changed = morph_amt != apvts.getRawParameterValue("MORPH")->load();
     
     // Update Morph Buf
     // TODO: This goes on background thread in future 
-    if (sounds[0].scan_changed.load() || sounds[1].scan_changed.load()) {
+    if (sounds[0].scan_changed.load() || sounds[1].scan_changed.load() || morph_changed) {
         // DO MORPH // SIMPLE CROSSFADE
+        morph_amt = apvts.getRawParameterValue("MORPH")->load();
         temp_morph_buf.copyFrom (0, 0, *(sounds[0].region_buffer.load()), 0, 0, sounds[0].get_num_samples());
         temp_morph_buf.applyGain(1.0f - morph_amt);
         temp_morph_buf.addFrom(0, 0, *(sounds[1].region_buffer.load()), 0, 0, sounds[1].get_num_samples(), morph_amt);
@@ -177,7 +179,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         sounds[0].scan_changed.store(false);
         sounds[1].scan_changed.store(false);
     }
-    morph_buf.queue_new_buffer(temp_morph_buf);
+    morph_buf.queue_new_buffer(&temp_morph_buf);
+    // morph_buf.queue_new_buffer(sounds[0].region_buffer.load());
 
     // update buffer
     morph_buf.update();

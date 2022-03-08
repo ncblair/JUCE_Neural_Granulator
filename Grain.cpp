@@ -12,7 +12,7 @@ void Grain::noteStarted(float size, float start) {
     note_on = true;
     elapsed_ms = 0.0f;
     cur_sample = grain_start * morph_buf_ptr->get_num_samples();
-    std::cout << "Grain ON, start sample: " << cur_sample << " total samples " << morph_buf_ptr->get_num_samples() << std::endl;
+    // std::cout << "Grain ON, start sample: " << cur_sample << " total samples " << morph_buf_ptr->get_num_samples() << std::endl;
 
     // Set up envelope.
     env.set(grain_size / 1000.0);
@@ -37,7 +37,7 @@ float Grain::getNextSample(float playback_rate) {
         if (elapsed_ms > grain_size) {
             note_on = false;
             elapsed_ms = 0.0f;
-            std::cout << "GRAIN_OFF\n";
+            // std::cout << "GRAIN_OFF\n";
         }
 
         // TODO: multiply by grain envelope

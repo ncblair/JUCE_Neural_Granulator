@@ -54,8 +54,8 @@ private:
     juce::TextButton file_open_buttons[2];
 
     // File Position
-    juce::Slider file_start_sample_sliders[2];
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> file_start_sample_attachments[2];
+    juce::Slider file_scan_sliders[2];
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> file_scan_slider_attachments[2];
 
     // std::unique_ptr<juce::FileChooser> file_chooser;
     // juce::AudioFormatManager format_manager;

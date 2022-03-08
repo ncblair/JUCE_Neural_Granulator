@@ -3,6 +3,7 @@
 // #include <juce_audio_processors/juce_audio_processors.h>
 #include <JuceHeader.h>
 #include "utils.h"
+#include "Soundfile.h"
 // #include <torch/torch.h>
 
 //==============================================================================

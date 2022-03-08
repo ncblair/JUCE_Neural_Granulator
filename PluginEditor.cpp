@@ -44,11 +44,11 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     for (int i = 0; i < 2; ++i) {
         addAndMakeVisible (&file_open_buttons[i]);
         file_open_buttons[i].setButtonText ("Open...");
-        file_open_buttons[i].onClick = [this] { open_file(i); };
+        file_open_buttons[i].onClick = [this, i]{ open_file(i); };
 
-        addAndMakeVisible(&file_start_sample_sliders[i]);
-        file_start_sample_attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            processorRef.apvts, "FILE_SCAN_" + std::to_string(i), file_start_sample_sliders[i]
+        addAndMakeVisible(&file_scan_sliders[i]);
+        file_scan_slider_attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            processorRef.apvts, "FILE_SCAN_" + std::to_string(i), file_scan_sliders[i]
         );
     }
 
@@ -90,15 +90,18 @@ void AudioPluginAudioProcessorEditor::resized()
     density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);
     // grain_env_type_combo_box.setBounds(getWidth() / 2.0 - 100., 450, 200, 50);
     file_open_buttons[0].setBounds(100, 500, 100, 50);
-    morph_slider.setBounds(300, 500, 100, 50);
-    file_open_buttons[1].setBounds(500, 500, 100, 50);
+    morph_slider.setBounds(300, 500, 200, 50);
+    file_open_buttons[1].setBounds(600, 500, 100, 50);
+
+    file_scan_sliders[0].setBounds(100, 550, 200, 50);
+    file_scan_sliders[1].setBounds(600, 550, 200, 50);
     // play_button.setBounds(int(getWidth() / 2.0f - 100.f), 500, 200, 50);
 
 }
 
 void AudioPluginAudioProcessorEditor::open_file(int file_index) {
-    processorRef.sounds[file_index].load_file();
-    file_open_buttons[file_index].setButtonText(processorRef.sounds[file_index].file_name);
+    processorRef.sounds[file_index].load_file(&file_open_buttons[file_index]);
+    
 }
 
 // void AudioPluginAudioProcessorEditor::openButtonClicked () {

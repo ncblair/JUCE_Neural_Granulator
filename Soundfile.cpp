@@ -4,12 +4,12 @@ Soundfile::Soundfile() {
     format_manager.registerBasicFormats();
 }
 
-void Soundfile::load_file() {
+void Soundfile::load_file(juce::TextButton* button) {
     // adapted from https://docs.juce.com/master/tutorial_playing_sound_files.html
     file_chooser = std::make_unique<juce::FileChooser> ("Select a Wave file to play...", juce::File{}, "*.wav");
     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
-    file_chooser->launchAsync (chooserFlags, [this] (const FileChooser& fc)
+    file_chooser->launchAsync (chooserFlags, [this, button] (const FileChooser& fc)
     {
         auto file = fc.getResult();
 
@@ -33,8 +33,9 @@ void Soundfile::load_file() {
                 region_buf_temp = juce::AudioBuffer<float>(1, sample_rate * region_num_seconds.load());
 
                 // Change text to indicate process finished!
-                file_name = file.getFileName();
+                button->setButtonText(file.getFileName());
                 file_loaded.store(true);
+                new_region.store(true);
             }
         }
     });
@@ -42,14 +43,22 @@ void Soundfile::load_file() {
 
 void Soundfile::update_parameters(float region_scan_arg) {
     // called from audio thread
-    if (region_scan.load() != region_scan_arg) {
+
+    // update file buffer first
+    file_buffer.update();
+
+    // then if a new region is set queue the region into the region_buffer
+    if ((region_scan.load() != region_scan_arg) && file_loaded.load()) {
+        new_region.store(true);
+    }
+    if (new_region.load()) {
         region_scan.store(region_scan_arg);
-        scan_changed.store(true);
         queue_region_buffer();
+        scan_changed.store(true);
+        new_region.store(false);
     }
     
     region_buffer.update();
-    file_buffer.update();
 }
 
 float Soundfile::get_num_samples() {
@@ -66,15 +75,13 @@ void Soundfile::queue_region_buffer() {
     while (num_samples_left > 0) {
         // circular buffer
         auto samples_this_time = juce::jmin(num_samples_left, file_buffer.get_num_samples() - cur_sample);
-
         // TODO: do we need to dereference here?
-        region_buf_temp.copyFrom(0, num_samples - num_samples_left, *file_buffer.load(), 0, cur_sample, samples_this_time);
-
+        region_buf_temp.copyFrom(0, num_samples - num_samples_left, *(file_buffer.load()), 0, cur_sample, samples_this_time);
         num_samples_left -= samples_this_time;
         cur_sample += samples_this_time;
         while (cur_sample >= file_buffer.get_num_samples()) {
             cur_sample -= file_buffer.get_num_samples();
         }
     }
-    region_buffer.queue_new_buffer(region_buf_temp);
+    region_buffer.queue_new_buffer(&region_buf_temp);
 }

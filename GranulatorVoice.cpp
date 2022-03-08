@@ -145,7 +145,7 @@ bool GranulatorVoice::trigger() {
     //  next grain arrives
     trigger_helper += density;
     if (trigger_helper > processor_ptr->GRAIN_SAMPLE_RATE * spray_factor) {
-        std::cout << "trigger " << std::endl;
+        // std::cout << "trigger " << std::endl;
         trigger_helper = 0.0;
         spray_factor = 1.0f + spray * (random.nextFloat()*2.0f - 1);
         return true;
@@ -171,4 +171,3 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     density = apvts.getRawParameterValue("DENSITY")->load();
     // grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
 }
-

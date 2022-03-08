@@ -55,12 +55,16 @@ float ftom(const float hertz) {
 
 
 
-SafeBuffer::SafeBuffer(int num_channels, int num_samples) {
+SafeBuffer::SafeBuffer(int channels, int samples) {
     //set up buffers
     buf_1.setSize(num_channels, num_samples);
     buf_2.setSize(num_channels, num_samples);
+
     cur_buf_ptr_atomic.store(&buf_1);
     temp_buf_ptr_atomic.store(&buf_2);
+
+    num_channels.store(channels);
+    num_samples.store(samples);
 }
 
 juce::AudioBuffer<float>* SafeBuffer::load() {
@@ -92,11 +96,12 @@ void SafeBuffer::update() {
         auto cur_ptr = cur_buf_ptr_atomic.load();
         cur_buf_ptr_atomic.store(temp_ptr);
         temp_buf_ptr_atomic.store(cur_ptr);
+        
+        // in this case, temp_ptr stores the buffer we are gonna use (the buffer that was queued)
+        num_samples.store(temp_ptr->getNumSamples());
+        num_channels.store(temp_ptr->getNumChannels());
+
         ready_to_update.store(false);
-
-        num_samples.store(cur_ptr->getNumSamples());
-        num_channels.store(cur_ptr->getNumChannels());
-
     }
 }
 

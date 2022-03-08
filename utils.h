@@ -73,7 +73,7 @@ class tukey {
 
 class SafeBuffer {
   public:
-    SafeBuffer(int num_channels=1, int num_samples=24000);
+    SafeBuffer(int channels=1, int samples=24000);
     // editor thread
     void queue_new_buffer(juce::AudioBuffer<float>* new_buffer);
     // audio thread
@@ -102,6 +102,6 @@ class SafeBuffer {
     std::atomic<bool> ready_to_update{false};
 
   private:
-    std::atomic<int> num_samples;
-    std::atomic<int> num_channels;
+    std::atomic<int> num_samples{0};
+    std::atomic<int> num_channels{0};
 };
