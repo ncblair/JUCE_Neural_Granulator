@@ -1,15 +1,4 @@
 #include "GranulatorVoice.h"
-#include <math.h>
-
-// TODO: MOVE TO UTILS FILE
-float mtof(float note_number) {
-    return pow(2.0f, note_number*0.08333333333f + 3.03135971352f);
-}
-
-// TODO: MOVE TO UTILS FILE
-float ftom(float hertz) {
-    return 12.0f*log2(hertz) - 36.376316562295983618f;
-}
 
 void GranulatorVoice::noteStarted() {
     // turn note on and finger down
@@ -88,7 +77,7 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
 
 
     for (int i = 0; i < N_GRAINS; ++i) {
-        grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf_ptr_atomic));
+        grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf));
     }
 }
 

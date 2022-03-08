@@ -1,7 +1,7 @@
 #include "Grain.h"
 
-void Grain::prepareToPlay(double sampleRate, std::atomic<juce::AudioBuffer<float>*>* buf_atomic_ptr_arg) {
-    this->buf_atomic_ptr = buf_atomic_ptr_arg;
+void Grain::prepareToPlay(double sampleRate, SafeBuffer* safe_buf_ptr) {
+    morph_buf_ptr = safe_buf_ptr; //set morph_buf_ptr to the pointer to the SafeBuffer passed in
     sample_rate_ms = sampleRate / 1000;
     env.setSamplingRate(sampleRate);
 }
@@ -11,8 +11,8 @@ void Grain::noteStarted(float size, float start) {
     grain_start = start;
     note_on = true;
     elapsed_ms = 0.0f;
-    cur_sample = grain_start * buf_atomic_ptr->load()->getNumSamples();
-    std::cout << "Grain ON, start sample: " << cur_sample << " total samples " << buf_atomic_ptr->load()->getNumSamples() << std::endl;
+    cur_sample = grain_start * morph_buf_ptr->get_num_samples();
+    std::cout << "Grain ON, start sample: " << cur_sample << " total samples " << morph_buf_ptr->get_num_samples() << std::endl;
 
     // Set up envelope.
     env.set(grain_size / 1000.0);
@@ -22,7 +22,7 @@ void Grain::noteStarted(float size, float start) {
 float Grain::getNextSample(float playback_rate) {
 
     if (isActive()) {
-        auto buf = buf_atomic_ptr->load();
+        auto buf = morph_buf_ptr->load();
         auto read_pointer = buf->getReadPointer(0); // do we move this outside
 
         // if we reach the end of the buffer, set cur_sample to 0 (circular buffer)
@@ -58,45 +58,5 @@ float Grain::getNextSample(float playback_rate) {
 
 bool Grain::isActive() {
     return note_on;
-}
-
-
-/**** tukey Class Implementation ****/
-
-float tukey::operator()(float playback_rate) {
-    if (currentS < (alpha_totalS) / 2) {
-        value = 0.5 * (1 + juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - 1) * M_PI));
-        currentS += playback_rate;
-    } else if (currentS <= totalS * (1 - alpha / 2)) {
-        value = 1;
-        currentS += playback_rate;
-    } else if (currentS <= totalS) {
-        value =
-            0.5 *
-            (1 +
-            juce::dsp::FastMathApproximations::cos((2 * currentS / (alpha_totalS) - (2 / alpha) + 1) * M_PI));
-        currentS += playback_rate;
-    } else
-        currentS = 0;
-    return value;
-}
-
-void tukey::set() {
-    if (totalS <= 0)
-        totalS = 1;
-    currentS = 0;
-    value = 0;
-    alpha_totalS = totalS * alpha;
-}
-
-void tukey::set(float seconds, float alpha) {
-    this->alpha = alpha;
-    totalS = seconds * mSamplingRate;
-    set();
-}
-
-void tukey::set(float seconds) {
-    totalS = seconds * mSamplingRate;
-    set();
 }
 

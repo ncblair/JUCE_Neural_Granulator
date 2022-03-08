@@ -14,12 +14,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
                        ), apvts(*this, nullptr, "Parameters", createParameters()), 
                        logger(juce::File("/users/ncblair/COMPSCI/JUCE_Harmonic_Oscillator/log.txt"), "Damped Log\n")
 {
-    //set up grain buffers
-    morph_buf.setSize(1, 24000);
-    temp_buffer.setSize(1, 24000);
-    morph_buf_ptr_atomic.store(&morph_buf);
-    temp_buffer_ptr_atomic.store(&temp_buffer);
-
     // init granulator
     granulator.clearVoices();
     for (auto i = 0; i < 16; ++i) {
@@ -171,14 +165,15 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // If a new grain is ready, switch the pointers atomically
-    if (new_grain_ready.load()) {
-        auto temp_ptr = temp_buffer_ptr_atomic.load();
-        auto morph_ptr = morph_buf_ptr_atomic.load();
-        morph_buf_ptr_atomic.store(temp_ptr);
-        temp_buffer_ptr_atomic.store(morph_ptr);
-        new_grain_ready.store(false);
-    }
+    // // If a new grain is ready, switch the pointers atomically
+    // if (new_grain_ready.load()) {
+    //     auto temp_ptr = temp_buffer_ptr_atomic.load();
+    //     auto morph_ptr = morph_buf_ptr_atomic.load();
+    //     morph_buf_ptr_atomic.store(temp_ptr);
+    //     temp_buffer_ptr_atomic.store(morph_ptr);
+    //     new_grain_ready.store(false);
+    // }
+    morph_buf.update();
     
     //Update Parameters on Audio Thread in each voice
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
@@ -201,7 +196,7 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     granulator.renderNextBlock(resample_buffer, midiMessages, 0, buffer.getNumSamples());
 
     if (play_sample.load()) {
-        auto mbuf = *morph_buf_ptr_atomic.load();
+        auto mbuf = *morph_buf.load();
         auto num_samples_now = juce::jmin(float(num_samples), mbuf.getNumSamples() - file_playback_counter);
         resample_buffer.addFrom(0, 0, mbuf, 0, file_playback_counter, num_samples_now);
         file_playback_counter += num_samples_now;
@@ -265,14 +260,14 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 //     new_grain_ready.store(true);
 // }
 
-void AudioPluginAudioProcessor::replace_morph_buf(juce::AudioBuffer<float>* new_buffer) {
-    // Runs on Editor Thread
+// void AudioPluginAudioProcessor::replace_morph_buf(juce::AudioBuffer<float>* new_buffer) {
+//     // Runs on Editor Thread
 
-    // Wait until pointers have been swapped in audio thread
-    while (new_grain_ready.load());
-    temp_buffer_ptr_atomic.store(new_buffer);
-    new_grain_ready.store(true);
-}
+//     // Wait until pointers have been swapped in audio thread
+//     while (new_grain_ready.load());
+//     temp_buffer_ptr_atomic.store(new_buffer);
+//     new_grain_ready.store(true);
+// }
 
 
 //==============================================================================

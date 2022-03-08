@@ -2,6 +2,7 @@
 
 // #include <juce_audio_processors/juce_audio_processors.h>
 #include <JuceHeader.h>
+#include "utils.h"
 // #include <torch/torch.h>
 
 //==============================================================================
@@ -59,8 +60,15 @@ public:
     // std::atomic<juce::AudioBuffer<float>*> file1_pointer{nullptr};
     std::atomic<float> file1_sample_rate;
 
-    // Audio Buffer used by granulator voices.
-    std::atomic<juce::AudioBuffer<float>*> morph_buf_ptr_atomic;
+    SafeBuffer morph_buf;
+    // // Audio Buffer ptr used by granulator voices.
+    // // Handle current audio grain
+    // std::atomic<juce::AudioBuffer<float>*> morph_buf_ptr_atomic;
+    // std::atomic<juce::AudioBuffer<float>*> temp_buffer_ptr_atomic;
+    // //two grain buffers. One is always temporary, one is always active
+    // juce::AudioBuffer<float> morph_buf_1;
+    // juce::AudioBuffer<float> morph_buf_2;
+    // std::atomic<bool> new_grain_ready{false};
 
     //allow sample playback
     std::atomic<bool> play_sample{false};
@@ -77,15 +85,10 @@ private:
     juce::Interpolators::Lagrange interpolators[2];
     juce::AudioBuffer<float> resample_buffer; //resample from grain rate to hardware rate
 
+    
+
     // temporary/utilites
     double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
-
-    // Handle current audio grain
-    std::atomic<juce::AudioBuffer<float>*> temp_buffer_ptr_atomic;
-    std::atomic<bool> new_grain_ready{false};
-    //two grain buffers. One is always temporary, one is always active
-    juce::AudioBuffer<float> morph_buf;
-    juce::AudioBuffer<float> temp_buffer;
 
     float file_playback_counter{0};
     

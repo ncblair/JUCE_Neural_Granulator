@@ -74,6 +74,7 @@ target_sources(NEURAL_GRANULATOR
         PluginProcessor.cpp
         GranulatorVoice.cpp
         Grain.cpp
+        utils.cpp
         # TorchThread.cpp
 )
 

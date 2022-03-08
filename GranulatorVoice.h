@@ -1,8 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+
 #include "Grain.h"
 #include "PluginProcessor.h"
+#include "utils.h"
 
 class GranulatorVoice : public juce::MPESynthesiserVoice {
   public: 

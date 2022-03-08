@@ -108,7 +108,7 @@ void AudioPluginAudioProcessorEditor::openButtonClicked () {
                 reader->read(audio, 0, num_samples, 0, true, true);
 
                 // inform processor of the sample rate, num_samples, and audio_channels.
-                processorRef.replace_morph_buf(audio); 
+                processorRef.morph_buf.queue_new_buffer(audio); 
                 processorRef.file1_sample_rate.store(reader->sampleRate);
 
                 // Change text to indicate process finished!    
