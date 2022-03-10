@@ -76,6 +76,7 @@ target_sources(NEURAL_GRANULATOR
         Grain.cpp
         utils.cpp
         Soundfile.cpp
+        GranLookAndFeel.cpp
         # TorchThread.cpp
 )
 
@@ -100,7 +101,7 @@ target_compile_definitions(NEURAL_GRANULATOR
 # static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
 # Conversion to binary-data will happen when your target is built.
 
-# juce_add_binary_data(AudioPluginData SOURCES ...)
+juce_add_binary_data(AudioPluginData SOURCES assets/AndaleMono.ttf)
 
 # `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
 # we're linking our executable target to the `juce::juce_audio_utils` module. Inter-module
@@ -110,7 +111,7 @@ target_compile_definitions(NEURAL_GRANULATOR
 
 target_link_libraries(NEURAL_GRANULATOR
     PRIVATE
-        # AudioPluginData           # If we'd created a binary data target, we'd link to it here
+        AudioPluginData           # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
         juce::juce_dsp
         # torch

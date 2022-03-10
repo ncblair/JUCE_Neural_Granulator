@@ -11,6 +11,7 @@ class Soundfile {
     void load_file(juce::TextButton* button=nullptr);
     void update_parameters(float region_scan_arg);
     void queue_region_buffer();
+    void paint(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds);
 
     bool get_file_loaded();
     float get_num_samples();
@@ -24,6 +25,10 @@ class Soundfile {
     juce::AudioBuffer<float> region_buf_temp;
     std::atomic<float> scan_changed;
 
+    // drawing and thumbnail
+    juce::AudioThumbnailCache thumbnail_cache{5};
+    juce::AudioThumbnail thumbnail{512, format_manager, thumbnail_cache}; 
+
   private:
     // file loading
     std::unique_ptr<juce::FileChooser> file_chooser;
@@ -36,5 +41,5 @@ class Soundfile {
     std::atomic<double> sample_rate;
 
     std::atomic<float> region_scan{-1.0f};
-    std::atomic<bool> new_region{false};
+    std::atomic<bool> new_region{false};  
 };

@@ -8,7 +8,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     juce::ignoreUnused (processorRef);
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (800, 800);
+    setSize (900, 700);
+
+    // set look and feel class
+    setLookAndFeel(&look_and_feel);
 
     //==============================================================================
     //ADD AND MAKE VISIBLE USER INTERFACE ELEMENTS
@@ -40,8 +43,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(morph_slider);
     morph_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "MORPH", morph_slider);
 
+    
     // Add file parameters
     for (int i = 0; i < 2; ++i) {
+        file_scan_sliders[i].setTextBoxStyle (juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, 280, 25);
         addAndMakeVisible (&file_open_buttons[i]);
         file_open_buttons[i].setButtonText ("Open...");
         file_open_buttons[i].onClick = [this, i]{ open_file(i); };
@@ -57,8 +62,10 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     // play_button.onClick = [this] { playButtonClicked(); };
 
     // format_manager.registerBasicFormats();
-
+    processorRef.sounds[0].thumbnail.addChangeListener (this);
+    processorRef.sounds[1].thumbnail.addChangeListener (this);
 }
+
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
 {
@@ -72,72 +79,46 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (15.0f);
+
+    //paint file 1
+    processorRef.sounds[0].paint(g, waveform_1_bounds);
+    processorRef.sounds[1].paint(g, waveform_2_bounds);
 }
 
 void AudioPluginAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    env1_attack_slider.setBounds(getWidth() / 2.0 - 100., 50, 200, 50);
-    env1_decay_slider.setBounds(getWidth() / 2.0 - 100., 100, 200, 50);
-    env1_sustain_slider.setBounds(getWidth() / 2.0 - 100., 150, 200, 50);
-    env1_release_slider.setBounds(getWidth() / 2.0 - 100., 200, 200, 50);
+    env1_attack_slider.setBounds(100., 600, 200, 50);
+    env1_decay_slider.setBounds(100., 650, 200, 50);
+    env1_sustain_slider.setBounds(200., 600, 200, 50);
+    env1_release_slider.setBounds(200., 650, 200, 50);
 
     grain_size_slider.setBounds(getWidth() / 2.0 - 100., 250, 200, 50);
     grain_scan_slider.setBounds(getWidth() / 2.0 - 100., 300, 200, 50);
 
     spray_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
-    density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);
-    // grain_env_type_combo_box.setBounds(getWidth() / 2.0 - 100., 450, 200, 50);
-    file_open_buttons[0].setBounds(100, 500, 100, 50);
-    morph_slider.setBounds(300, 500, 200, 50);
-    file_open_buttons[1].setBounds(600, 500, 100, 50);
+    density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);    
 
-    file_scan_sliders[0].setBounds(100, 550, 200, 50);
-    file_scan_sliders[1].setBounds(600, 550, 200, 50);
-    // play_button.setBounds(int(getWidth() / 2.0f - 100.f), 500, 200, 50);
+    // set waveform bounds
+    waveform_1_bounds = juce::Rectangle<int>(10., 50., 280., 80.);
+    waveform_2_bounds = juce::Rectangle<int>(360., 50., 280., 80.);
+    // file scan within waveforms
+    file_scan_sliders[0].setBounds(10., 130., 280., 50.);
+    file_scan_sliders[1].setBounds(360., 130., 280., 50.);
+
+    file_open_buttons[0].setBounds(10, 30., 140., 20.);
+    morph_slider.setBounds(300., 75., 50., 50.);
+    file_open_buttons[1].setBounds(360., 30., 140., 20.);
 
 }
 
 void AudioPluginAudioProcessorEditor::open_file(int file_index) {
     processorRef.sounds[file_index].load_file(&file_open_buttons[file_index]);
-    
 }
 
-// void AudioPluginAudioProcessorEditor::openButtonClicked () {
-//     // adapted from https://docs.juce.com/master/tutorial_playing_sound_files.html
-//     file_chooser = std::make_unique<juce::FileChooser> ("Select a Wave file to play...", juce::File{}, "*.wav");
-//     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
-
-//     file_chooser->launchAsync (chooserFlags, [this] (const FileChooser& fc)
-//     {
-//         auto file = fc.getResult();
-
-//         if (file != File{})
-//         {
-//             auto* reader = format_manager.createReaderFor(file);
-
-//             if (reader != nullptr)
-//             {
-//                 const int num_channels = int(reader->numChannels);
-//                 const int num_samples = int(reader->lengthInSamples);
-//                 // get audio from file into an audio buffer
-//                 auto audio = new juce::AudioBuffer<float>(num_channels, num_samples);
-//                 reader->read(audio, 0, num_samples, 0, true, true);
-
-//                 // inform processor of the sample rate, num_samples, and audio_channels.
-//                 processorRef.morph_buf.queue_new_buffer(audio); 
-//                 processorRef.file1_sample_rate.store(reader->sampleRate);
-
-//                 // Change text to indicate process finished!    
-//                 open_button.setButtonText (file.getFileName());
-//                 processorRef.file1_loaded.store(true);
-//             }
-//         }
-//     });
-// }
-
-// void AudioPluginAudioProcessorEditor::playButtonClicked () {
-//     std::cout << "Play audio file";
-//     processorRef.play_sample.store(true);
-// }
+void AudioPluginAudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster* source) {
+    if (source == &processorRef.sounds[0].thumbnail || source == &processorRef.sounds[1].thumbnail) {
+        repaint(); // thumbnail changed
+    }
+}

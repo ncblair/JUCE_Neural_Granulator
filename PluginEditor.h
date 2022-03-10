@@ -1,9 +1,10 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "GranLookAndFeel.h"
 
 //==============================================================================
-class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor
+class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::ChangeListener
 {
 public:
     explicit AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor&);
@@ -12,6 +13,7 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    void changeListenerCallback (juce::ChangeBroadcaster* source) override;
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -19,17 +21,22 @@ private:
     AudioPluginAudioProcessor& processorRef;
 
     //==============================================================================
+    //LOOK AND FEEL 
+    //==============================================================================
+    GranLookAndFeel look_and_feel;
+
+    //==============================================================================
     //SET UP USER INTERFACE ELEMENTS
     //==============================================================================
 
     //Voice ADSR Sliders
-    juce::Slider env1_attack_slider;
+    juce::Slider env1_attack_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> env1_attack_slider_attachment;
-    juce::Slider env1_decay_slider;
+    juce::Slider env1_decay_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> env1_decay_slider_attachment;
-    juce::Slider env1_sustain_slider;
+    juce::Slider env1_sustain_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> env1_sustain_slider_attachment;
-    juce::Slider env1_release_slider;
+    juce::Slider env1_release_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> env1_release_slider_attachment;
 
     //Grain Shape Parameters
@@ -47,7 +54,7 @@ private:
     // std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> grain_env_type_combo_box_attachment;
 
     //Morphing Slider
-    juce::Slider morph_slider;
+    juce::Slider morph_slider{juce::Slider::LinearHorizontal, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> morph_slider_attachment;
 
     // File Loading
@@ -56,6 +63,10 @@ private:
     // File Position
     juce::Slider file_scan_sliders[2];
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> file_scan_slider_attachments[2];
+
+    // Waveforms
+    juce::Rectangle<int> waveform_1_bounds;
+    juce::Rectangle<int> waveform_2_bounds;
 
     // std::unique_ptr<juce::FileChooser> file_chooser;
     // juce::AudioFormatManager format_manager;

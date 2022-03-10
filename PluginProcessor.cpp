@@ -326,17 +326,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         [](juce::String text) {return text.trimCharactersAtEnd (" %").getFloatValue();}
     ));
 
+    auto scan_range = juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f);
     for (int i = 0; i < 2; ++i) {
         // per-file parameters
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             "FILE_SCAN_" + std::to_string(i),  // parameter ID
             "File Scan " + std::to_string(i),  // parameter name
-            juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f),  // range
+            scan_range,  // range
             0.0f,         // default value
             "Position in file in [0, 1]", // parameter label (description?)
             juce::AudioProcessorParameter::Category::genericParameter,
-            [](float value, int maximumStringLength) {return juce::String (value) + " position";},
-            [](juce::String text) {return text.trimCharactersAtEnd (" position").getFloatValue();}
+            [scan_range](float value, int maximumStringLength) {std::stringstream ss;ss << std::fixed << std::setprecision(2) << scan_range.convertTo0to1(value);return juce::String(ss.str());},
+            [scan_range](juce::String text) {return scan_range.convertFrom0to1(text.getFloatValue());}
         ));
     }
     

@@ -32,6 +32,8 @@ void Soundfile::load_file(juce::TextButton* button) {
                 // initialize region buf temp
                 region_buf_temp = juce::AudioBuffer<float>(1, sample_rate * region_num_seconds.load());
 
+                thumbnail.setSource (new juce::FileInputSource (file));
+
                 // Change text to indicate process finished!
                 button->setButtonText(file.getFileName());
                 file_loaded.store(true);
@@ -84,4 +86,21 @@ void Soundfile::queue_region_buffer() {
         }
     }
     region_buffer.queue_new_buffer(&region_buf_temp);
+}
+
+void Soundfile::paint(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
+    g.setColour (juce::Colours::white);
+    g.fillRect (thumbnailBounds);
+    g.setColour (juce::Colours::black);
+    g.drawRect (thumbnailBounds);
+    if (file_loaded.load()) {
+        thumbnail.drawChannels (g,                                      // [9]
+                                thumbnailBounds,
+                                0.0,                                    // start time
+                                thumbnail.getTotalLength(),             // end time
+                                1.0f);                                  // vertical zoom
+    }
+    else {
+        g.drawFittedText ("No File Loaded", thumbnailBounds, juce::Justification::centred, 1);
+    }
 }
