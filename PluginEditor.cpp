@@ -102,14 +102,14 @@ void AudioPluginAudioProcessorEditor::resized()
 
     // set waveform bounds
     waveform_1_bounds = juce::Rectangle<int>(10., 50., 280., 80.);
-    waveform_2_bounds = juce::Rectangle<int>(360., 50., 280., 80.);
+    waveform_2_bounds = juce::Rectangle<int>(390., 50., 280., 80.);
     // file scan within waveforms
     file_scan_sliders[0].setBounds(10., 130., 280., 50.);
-    file_scan_sliders[1].setBounds(360., 130., 280., 50.);
+    file_scan_sliders[1].setBounds(390., 130., 280., 50.);
 
     file_open_buttons[0].setBounds(10, 30., 140., 20.);
-    morph_slider.setBounds(300., 75., 50., 50.);
-    file_open_buttons[1].setBounds(360., 30., 140., 20.);
+    morph_slider.setBounds(300., 75., 80., 50.);
+    file_open_buttons[1].setBounds(390., 30., 140., 20.);
 
 }
 

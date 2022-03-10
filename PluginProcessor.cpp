@@ -314,16 +314,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         [](float value, int maximumStringLength) {return juce::String (value) + " hz";},
         [](juce::String text) {return text.trimCharactersAtEnd (" hz").getFloatValue();}
     ));
-
+    auto morph_range = juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f);
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "MORPH",  // parameter ID
         "Morph",  // parameter name
-        juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f),  // range
+        morph_range,  // range
         0.0f,         // default value
         "Morph between file1 and file 2", // parameter label (description?)
         juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " %";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" %").getFloatValue();}
+        [morph_range](float value, int maximumStringLength) {std::stringstream ss;ss << std::fixed << std::setprecision(2) << morph_range.convertTo0to1(value);return juce::String(ss.str());},
+        [morph_range](juce::String text) {return morph_range.convertFrom0to1(text.getFloatValue());}
     ));
 
     auto scan_range = juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f);
