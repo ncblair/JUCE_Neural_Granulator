@@ -79,7 +79,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     repaint_grain_env();
     grain_env_width_slider.onValueChange = [this] { repaint_grain_env(); };
     grain_env_center_slider.onValueChange = [this] { repaint_grain_env(); };
-
 }
 
 

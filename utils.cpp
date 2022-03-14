@@ -111,6 +111,8 @@ SafeBuffer::SafeBuffer(int channels, int samples) {
 
     num_channels.store(channels);
     num_samples.store(samples);
+
+    ready_to_update.store(false);
 }
 
 juce::AudioBuffer<float>* SafeBuffer::load() {

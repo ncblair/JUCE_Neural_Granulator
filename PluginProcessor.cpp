@@ -203,9 +203,8 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         
         sounds[0].scan_changed.store(false);
         sounds[1].scan_changed.store(false);
+        morph_buf.queue_new_buffer(&temp_morph_buf);
     }
-    morph_buf.queue_new_buffer(&temp_morph_buf);
-    // morph_buf.queue_new_buffer(sounds[0].region_buffer.load());
 
     // update buffer
     morph_buf.update();
@@ -230,8 +229,10 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // resample_buffer.clear();
     buffer.clear();
 
-    granulator.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-
+    if (sounds[0].file_loaded.load() || sounds[1].file_loaded.load()) {
+        granulator.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    }
+    
     // if (play_sample.load()) {
     //     auto mbuf = *morph_buf.load();
     //     auto num_samples_now = juce::jmin(float(num_samples), mbuf.getNumSamples() - file_playback_counter);
