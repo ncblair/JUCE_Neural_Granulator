@@ -57,6 +57,13 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
         );
     }
 
+    // Add morph buffer waveform display
+    addAndMakeVisible(morph_waveform);
+    // repaint waveform on slider movements
+    morph_slider.onValueChange = [this] { morph_waveform.repaint(); }; // morph slider repaints waveform component
+    file_scan_sliders[0].onValueChange = [this] { morph_waveform.repaint(); }; // file pos sliders repaints waveform component
+    file_scan_sliders[1].onValueChange = [this] { morph_waveform.repaint(); };
+
     // addAndMakeVisible (&play_button);
     // play_button.setButtonText ("Play...");
     // play_button.onClick = [this] { playButtonClicked(); };
@@ -111,10 +118,12 @@ void AudioPluginAudioProcessorEditor::resized()
     morph_slider.setBounds(300., 75., 80., 50.);
     file_open_buttons[1].setBounds(390., 30., 140., 20.);
 
+    morph_waveform.setBounds(195., 200., 280., 80.);
+
 }
 
 void AudioPluginAudioProcessorEditor::open_file(int file_index) {
-    processorRef.sounds[file_index].load_file(&file_open_buttons[file_index]);
+    processorRef.sounds[file_index].load_file(&file_open_buttons[file_index], processorRef.getSampleRate());
 }
 
 void AudioPluginAudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster* source) {

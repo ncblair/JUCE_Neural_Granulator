@@ -27,7 +27,7 @@ class Grain {
      * 
      * playback_rate: how fast we'll move through the buffer
      */
-    float getNextSample(float playback_rate);
+    float getNextSample(float playback_rate, int c=0);
 
     /**
      * Return true if the grain is playing, o.w. return false.
@@ -41,8 +41,8 @@ class Grain {
 
     //Voice Housekeeping
     bool note_on{false};
-    float elapsed_ms{0.0f};
-    float cur_sample{0.0f};
+    float elapsed_ms[2]{0.0f, 0.0f};
+    float cur_sample[2]{0.0f, 0.0f};
 
     //Grain Parameters
     float grain_size; // length of grain in seconds

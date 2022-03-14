@@ -98,7 +98,12 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         }
 
         internal_playback_buffer.clear();
-        auto write_pointer = internal_playback_buffer.getWritePointer(0);
+        
+        for (int c = 0; c < internal_playback_buffer.getNumChannels(); ++c) {
+            write_pointers[c] = internal_playback_buffer.getWritePointer(c);
+        }
+        
+        
 
         // We will process everything one sample at a time (we might need to trigger a new grain at a certain sample)
         for (int i = 0; i < numSamples; ++i) {
@@ -112,9 +117,11 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
             }
 
             // Render All Grains [only active ones will actually do anything]
-            for (int j = 0; j < N_GRAINS; j++) {
-                // call render method on individual grains. this has to be FAST
-                write_pointer[i] += grains[j].getNextSample(playback_rate);
+            for (int c = 0; c < internal_playback_buffer.getNumChannels(); ++c) {
+                for (int j = 0; j < N_GRAINS; j++) {
+                    // call render method on individual grains. this has to be FAST
+                    write_pointers[c][i] += grains[j].getNextSample(playback_rate, c);
+                }
             }
         }
 
@@ -144,7 +151,7 @@ bool GranulatorVoice::trigger() {
     // spray_factor is then set to a random float between 0 and 2 that determines how soon the
     //  next grain arrives
     trigger_helper += density;
-    if (trigger_helper > processor_ptr->GRAIN_SAMPLE_RATE * spray_factor) {
+    if (trigger_helper > processor_ptr->getSampleRate() * spray_factor) {
         // std::cout << "trigger " << std::endl;
         trigger_helper = 0.0;
         spray_factor = 1.0f + spray * (random.nextFloat()*2.0f - 1);

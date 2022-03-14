@@ -77,6 +77,7 @@ target_sources(NEURAL_GRANULATOR
         utils.cpp
         Soundfile.cpp
         GranLookAndFeel.cpp
+        WaveformDisplay.cpp
         # TorchThread.cpp
 )
 

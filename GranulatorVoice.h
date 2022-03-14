@@ -64,5 +64,8 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     int trigger_helper{0};
     float spray_factor{0.0f};
     juce::Random random{1111}; // seed 1111
+
+    // WRITE POINTERS
+    float* write_pointers[2];
     
 };

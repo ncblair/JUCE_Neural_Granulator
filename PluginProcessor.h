@@ -50,11 +50,11 @@ public:
     // std::unique_ptr<juce::UndoManager> undo_manager;
     juce::FileLogger logger;
 
-    double GRAIN_SAMPLE_RATE{48000.}; // constant playback rate of nn grains
+    // double GRAIN_SAMPLE_RATE{48000.}; // constant playback rate of nn grains
 
     //Replace audio grain 
     // void replace_grain(const at::Tensor& tensor);
-    void replace_morph_buf(juce::AudioBuffer<float>* new_buffer);
+    // void replace_morph_buf(juce::AudioBuffer<float>* new_buffer);
 
     // // audio file1 stuff
     // std::atomic<bool> file1_loaded{false};
@@ -81,11 +81,11 @@ private:
     juce::MPEZoneLayout zone_layout;
     
     // Interpolators to go from NN sample rate to Hardware Sample Rate
-    juce::Interpolators::Lagrange interpolators[2];
-    juce::AudioBuffer<float> resample_buffer; //resample from grain rate to hardware rate
+    // juce::Interpolators::Lagrange interpolators[2];
+    // juce::AudioBuffer<float> resample_buffer; //resample from grain rate to hardware rate
 
     // temporary/utilites
-    double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
+    // double grain_sample_rate_ratio; //GRAIN_SAMPLE_RATE/getCurrentSampleRate();
 
     // float file_playback_counter{0};
 

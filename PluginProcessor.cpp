@@ -100,21 +100,23 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-    grain_sample_rate_ratio = GRAIN_SAMPLE_RATE/sampleRate;
-    granulator.setCurrentPlaybackSampleRate(GRAIN_SAMPLE_RATE);
+    // grain_sample_rate_ratio = GRAIN_SAMPLE_RATE/sampleRate;
+    granulator.setCurrentPlaybackSampleRate(sampleRate);
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
         if (auto voice = dynamic_cast<GranulatorVoice*>(granulator.getVoice(i))) {
             //update voice parameters from value tree. Use the Grain sample rate, not the hardware one
-            voice->prepareToPlay(GRAIN_SAMPLE_RATE, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), this);
+            // voice->prepareToPlay(sampleRate, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), this);
+            voice->prepareToPlay(sampleRate, samplesPerBlock, getTotalNumOutputChannels(), this);
+
         }
     }
 
-    resample_buffer = juce::AudioSampleBuffer(1, samplesPerBlock * 2); //allocate twice as many samples defensively
+    // resample_buffer = juce::AudioSampleBuffer(1, samplesPerBlock * 2); //allocate twice as many samples defensively
 
-    interpolators[0] = juce::Interpolators::Lagrange();
-    interpolators[1] = juce::Interpolators::Lagrange();
+    // interpolators[0] = juce::Interpolators::Lagrange();
+    // interpolators[1] = juce::Interpolators::Lagrange();
 
-    temp_morph_buf.setSize(1, sampleRate);
+    temp_morph_buf.setSize(getTotalNumOutputChannels(), sampleRate);
 
 }
 
@@ -170,12 +172,36 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // Update Morph Buf
     // TODO: This goes on background thread in future 
     if (sounds[0].scan_changed.load() || sounds[1].scan_changed.load() || morph_changed) {
+        temp_morph_buf.clear();
         // DO MORPH // SIMPLE CROSSFADE
         morph_amt = apvts.getRawParameterValue("MORPH")->load();
-        temp_morph_buf.copyFrom (0, 0, *(sounds[0].region_buffer.load()), 0, 0, sounds[0].get_num_samples());
-        temp_morph_buf.applyGain(1.0f - morph_amt);
-        temp_morph_buf.addFrom(0, 0, *(sounds[1].region_buffer.load()), 0, 0, sounds[1].get_num_samples(), morph_amt);
 
+        if (sounds[0].file_loaded.load()) {
+            // add the correct number of channels from the first sample
+            for (int c = 0; c < totalNumOutputChannels; ++c) {
+                if (c < sounds[0].get_num_channels()) {
+                    temp_morph_buf.copyFrom (c, 0, *(sounds[0].region_buffer.load()), c, 0, sounds[0].get_num_samples());
+                }
+                else {
+                    temp_morph_buf.copyFrom(c, 0, temp_morph_buf, 0, 0, temp_morph_buf.getNumSamples());
+                }
+            }
+            temp_morph_buf.applyGain(1.0f - morph_amt);
+        }
+        if (sounds[1].file_loaded.load()) {
+            // add the correct number of channels from the second sample / if more channels in output than input, copy
+            for (int c = 0; c < totalNumOutputChannels; ++c) {
+                if (c < sounds[1].get_num_channels()) {
+                    temp_morph_buf.addFrom(c, 0, *(sounds[1].region_buffer.load()), c, 0, sounds[1].get_num_samples(), morph_amt);
+                }
+                else {
+                    std::cout << "line 1" << std::endl;
+                    temp_morph_buf.addFrom(c, 0, *(sounds[1].region_buffer.load()), 0, 0, sounds[1].get_num_samples(), morph_amt);
+                    std::cout << "line 2" << std::endl;
+                }
+            }
+        }
+        
         sounds[0].scan_changed.store(false);
         sounds[1].scan_changed.store(false);
     }
@@ -196,15 +222,17 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     }
 
     // allocate more to resample buffer if need be. ideally this won't be called
-    int num_samples = int(ceil(buffer.getNumSamples() * grain_sample_rate_ratio));
-    if (num_samples > resample_buffer.getNumSamples()) {
-        //hope this doesn't happen (allocating in audio thread)
-        resample_buffer.setSize(resample_buffer.getNumChannels(), num_samples);
-    }
+    // int num_samples = int(ceil(buffer.getNumSamples() * grain_sample_rate_ratio));
+    // if (num_samples > resample_buffer.getNumSamples()) {
+    //     //hope this doesn't happen (allocating in audio thread)
+    //     resample_buffer.setSize(resample_buffer.getNumChannels(), num_samples);
+    // }
 
     // Render next block for each granulator voice on resample buffer
-    resample_buffer.clear();
-    granulator.renderNextBlock(resample_buffer, midiMessages, 0, buffer.getNumSamples());
+    // resample_buffer.clear();
+    buffer.clear();
+
+    granulator.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
 
     // if (play_sample.load()) {
     //     auto mbuf = *morph_buf.load();
@@ -219,10 +247,10 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     
     for (int c = 0; c < totalNumOutputChannels; ++c) {
         // resample temporary buffer samples to the sample rate of the output buffer
-        interpolators[c].process   (grain_sample_rate_ratio, 
-                                    resample_buffer.getReadPointer(0), 
-                                    buffer.getWritePointer(c), 
-                                    buffer.getNumSamples());
+        // interpolators[c].process   (grain_sample_rate_ratio, 
+        //                             resample_buffer.getReadPointer(0), 
+        //                             buffer.getWritePointer(c), 
+        //                             buffer.getNumSamples());
         // internal clipping
         juce::FloatVectorOperations::clip  (buffer.getWritePointer(c), buffer.getWritePointer(c),
                                             -1.0f, 1.0f, buffer.getNumSamples());

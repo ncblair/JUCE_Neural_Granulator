@@ -2,6 +2,7 @@
 
 #include "PluginProcessor.h"
 #include "GranLookAndFeel.h"
+#include "WaveformDisplay.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::ChangeListener
@@ -67,6 +68,8 @@ private:
     // Waveforms
     juce::Rectangle<int> waveform_1_bounds;
     juce::Rectangle<int> waveform_2_bounds;
+
+    WaveformDisplay morph_waveform{&processorRef.morph_buf};
 
     // std::unique_ptr<juce::FileChooser> file_chooser;
     // juce::AudioFormatManager format_manager;
