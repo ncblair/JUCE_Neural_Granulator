@@ -64,13 +64,22 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     file_scan_sliders[0].onValueChange = [this] { morph_waveform.repaint(); }; // file pos sliders repaints waveform component
     file_scan_sliders[1].onValueChange = [this] { morph_waveform.repaint(); };
 
-    // addAndMakeVisible (&play_button);
-    // play_button.setButtonText ("Play...");
-    // play_button.onClick = [this] { playButtonClicked(); };
-
-    // format_manager.registerBasicFormats();
     processorRef.sounds[0].thumbnail.addChangeListener (this);
     processorRef.sounds[1].thumbnail.addChangeListener (this);
+
+    // GRAIN ENVELOPE
+    addAndMakeVisible(grain_env_width_slider);
+    grain_env_width_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_ENV_WIDTH", grain_env_width_slider);
+    addAndMakeVisible(grain_env_center_slider);
+    grain_env_center_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_ENV_CENTER", grain_env_center_slider);
+    grain_env_compute.setSamplingRate(processorRef.getSampleRate());
+    addAndMakeVisible(grain_env_waveform);
+    cur_grain_env_width.reset(processorRef.getSampleRate(), 0.0);
+    cur_grain_env_center.reset(processorRef.getSampleRate(), 0.0);
+    repaint_grain_env();
+    grain_env_width_slider.onValueChange = [this] { repaint_grain_env(); };
+    grain_env_center_slider.onValueChange = [this] { repaint_grain_env(); };
+
 }
 
 
@@ -120,6 +129,27 @@ void AudioPluginAudioProcessorEditor::resized()
 
     morph_waveform.setBounds(195., 200., 280., 80.);
 
+    grain_env_width_slider.setBounds(20., 360., 60., 50.);
+    grain_env_center_slider.setBounds(80., 360., 60., 50.);
+    grain_env_waveform.setBounds(20., 290., 140., 60.);
+}
+
+void AudioPluginAudioProcessorEditor::repaint_grain_env() {
+    grain_env_compute.set(0.5f);
+    cur_grain_env_width.setCurrentAndTargetValue (processorRef.apvts.getRawParameterValue("GRAIN_ENV_WIDTH")->load());
+    cur_grain_env_center.setCurrentAndTargetValue (processorRef.apvts.getRawParameterValue("GRAIN_ENV_CENTER")->load());
+    // not using this safebuffer safely, but that's okay, because this is always on editor thread
+    // unfortunately, some technical debt is building up
+    temp_grain_env_buffer.clear();
+    auto write_pointer = temp_grain_env_buffer.getWritePointer(0);
+    for (int i = 0; i < grain_env_buffer.get_num_samples(); ++i) {
+        write_pointer[i] = grain_env_compute.step(1.0f) * 1.75f - 1.0f;
+        // std::cout << "how many" << std::endl;
+        // write_pointer[i] = x;
+    }
+    grain_env_buffer.queue_new_buffer(&temp_grain_env_buffer);
+    grain_env_buffer.update();
+    grain_env_waveform.repaint();
 }
 
 void AudioPluginAudioProcessorEditor::open_file(int file_index) {

@@ -39,6 +39,50 @@ void tukey::set(float seconds) {
     set();
 }
 
+/**** triangle range tukey Class Implementation ****/
+
+TriangularRangeTukey::TriangularRangeTukey(juce::SmoothedValue<float>* w, juce::SmoothedValue<float>* c) : width(w), center(c){
+}
+
+void TriangularRangeTukey::set(float seconds) {
+    total_samples = seconds * mSamplingRate;
+    percent_elapsed = 0.0f;
+}
+
+float TriangularRangeTukey::step(float playback_rate) {
+    float x;
+    float c = center->getCurrentValue(); // c in 0 to 1
+    float w = width->getCurrentValue(); // w in -1 to 1
+    
+    if (percent_elapsed < c) {
+        x = percent_elapsed / (2.0f * c);
+    }
+    else {
+        x = 0.5f + (percent_elapsed - c) / ((1.0f - c) * 2.0f);
+    }
+
+    percent_elapsed += playback_rate / total_samples;
+    while (percent_elapsed >= 1.0f) {
+        percent_elapsed -= 1.0f;
+    }
+
+    if (w > 0.0f) {
+		w = (1.0f - w) / 2.0f;
+		if (x < w){
+			return 0.5f * (1.0f + juce::dsp::FastMathApproximations::cos(M_PI * (-1.0f + x/w)));
+        }
+		else if (x > 1.0f - w){
+			return 0.5f * (1.0f + juce::dsp::FastMathApproximations::cos(M_PI * (-1.0f/w + 1.0f + x/w)));
+        }
+		else{
+            return 1.0f;
+        }
+    }
+	else{
+		return std::pow(juce::dsp::FastMathApproximations::sin(M_PI * x), (-10.0f * w + 2.0f));
+    }
+}
+
 /**
  * Fast Midi To Frequency Function
  */
@@ -53,12 +97,14 @@ float ftom(const float hertz) {
     return 12.0f*log2(hertz) - 36.376316562295983618f;
 }
 
-
+/**** SafeBuffer Class Implementation ****/
 
 SafeBuffer::SafeBuffer(int channels, int samples) {
     //set up buffers
     buf_1.setSize(num_channels, num_samples);
     buf_2.setSize(num_channels, num_samples);
+    buf_1.clear();
+    buf_2.clear();
 
     cur_buf_ptr_atomic.store(&buf_1);
     temp_buf_ptr_atomic.store(&buf_2);

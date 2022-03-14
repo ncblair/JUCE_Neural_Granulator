@@ -17,6 +17,10 @@ void GranulatorVoice::noteStarted() {
     // reset note trigger
     trigger_helper = 0;
     spray_factor = 0.0f;
+
+    // set grain envelope params to the current value
+    grain_env_width.setCurrentAndTargetValue (grain_env_width.getTargetValue());
+    grain_env_center.setCurrentAndTargetValue (grain_env_center.getTargetValue());
 }
 
 void GranulatorVoice::noteStopped(bool allowTailOff) {
@@ -77,8 +81,11 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
 
 
     for (int i = 0; i < N_GRAINS; ++i) {
-        grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf));
+        grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf), &grain_env_width, &grain_env_center);
     }
+
+    grain_env_width.reset(sampleRate, 0.005);
+    grain_env_center.reset(sampleRate, 0.005);
 }
 
 void GranulatorVoice::setCurrentSampleRate (double newRate) {
@@ -119,6 +126,9 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
             // Render All Grains [only active ones will actually do anything]
             for (int c = 0; c < internal_playback_buffer.getNumChannels(); ++c) {
                 for (int j = 0; j < N_GRAINS; j++) {
+                    // update grain env params
+                    grain_env_center.getNextValue();
+                    grain_env_width.getNextValue();
                     // call render method on individual grains. this has to be FAST
                     write_pointers[c][i] += grains[j].getNextSample(playback_rate, c);
                 }
@@ -177,4 +187,9 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
     spray = apvts.getRawParameterValue("SPRAY")->load();
     density = apvts.getRawParameterValue("DENSITY")->load();
     // grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
+
+    // update grain env parameters;
+    grain_env_center.setTargetValue(apvts.getRawParameterValue("GRAIN_ENV_CENTER")->load());
+    grain_env_width.setTargetValue(apvts.getRawParameterValue("GRAIN_ENV_WIDTH")->load());
+
 }

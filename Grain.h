@@ -10,7 +10,8 @@ class Grain {
     /**
      * Initialization
      */
-    void prepareToPlay(double sampleRate, SafeBuffer* safe_buf_ptr);
+    void prepareToPlay(double sampleRate, SafeBuffer* safe_buf_ptr, 
+                      juce::SmoothedValue<float>* env_w, juce::SmoothedValue<float>* env_c);
 
     /**
      * Called at the grain rate.
@@ -48,6 +49,6 @@ class Grain {
     float grain_size; // length of grain in seconds
     float grain_start; // position in buffer normalized from 0 to 1
 
-    tukey env;
+    std::shared_ptr<TriangularRangeTukey> env;
 };
 

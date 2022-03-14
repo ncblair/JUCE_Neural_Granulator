@@ -64,12 +64,27 @@ class tukey {
     */
     void increment() { currentS++; }
 
-  private:
+  protected:
     float value = 0, alpha = 0.6, mSamplingRate = 48000;
     float currentS = 0, totalS = 1;
     float alpha_totalS;
 };
 
+class TriangularRangeTukey {
+  public:
+    TriangularRangeTukey(juce::SmoothedValue<float>* w, juce::SmoothedValue<float>* c);
+    float step(float playback_rate);
+    void set(float seconds);
+
+    void setSamplingRate(float samplingRate) { mSamplingRate = samplingRate; }
+    float getSamplingRate() const { return mSamplingRate; }
+  private:
+    float mSamplingRate{48000};
+    juce::SmoothedValue<float>* width; // -1 to 1
+    juce::SmoothedValue<float>* center;
+    float percent_elapsed{0.0f};
+    float total_samples{48000};
+};
 
 class SafeBuffer {
   public:

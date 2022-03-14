@@ -107,7 +107,6 @@ void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPer
             //update voice parameters from value tree. Use the Grain sample rate, not the hardware one
             // voice->prepareToPlay(sampleRate, int(ceil(double(samplesPerBlock)*grain_sample_rate_ratio)), getTotalNumOutputChannels(), this);
             voice->prepareToPlay(sampleRate, samplesPerBlock, getTotalNumOutputChannels(), this);
-
         }
     }
 
@@ -210,7 +209,6 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // update buffer
     morph_buf.update();
-    
 
     // Update Parameters on Audio Thread in each voice
     for (int i = 0; i < granulator.getNumVoices(); ++i) {
@@ -313,9 +311,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "GRAIN_SCAN",  // parameter ID
         "Grain Scan",  // parameter name
-        juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f),  // range
+        juce::NormalisableRange<float> (0.0f, 0.5f, 0.0f),  // range
         0.0f,         // default value
-        "Position of grain in [0, 1]", // parameter label (description?)
+        "Position of grain in [0, 0.5]", // parameter label (description?)
         juce::AudioProcessorParameter::Category::genericParameter,
         [](float value, int maximumStringLength) {return juce::String (value) + " position";},
         [](juce::String text) {return text.trimCharactersAtEnd (" position").getFloatValue();}
@@ -368,6 +366,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
             [scan_range](juce::String text) {return scan_range.convertFrom0to1(text.getFloatValue());}
         ));
     }
+
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("GRAIN_ENV_WIDTH", "Grain_Env_Width", -1.0f, 1.0f, 0.6f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("GRAIN_ENV_CENTER", "Grain_Env_Center", 0.0f, 1.0f, 0.5f));
     
     return {params.begin(), params.end()};
 }

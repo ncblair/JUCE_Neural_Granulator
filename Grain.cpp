@@ -1,9 +1,11 @@
 #include "Grain.h"
 
-void Grain::prepareToPlay(double sampleRate, SafeBuffer* safe_buf_ptr) {
+void Grain::prepareToPlay(double sampleRate, SafeBuffer* safe_buf_ptr, 
+                        juce::SmoothedValue<float>* env_w, juce::SmoothedValue<float>* env_c) {
     morph_buf_ptr = safe_buf_ptr; //set morph_buf_ptr to the pointer to the SafeBuffer passed in
     sample_rate_ms = sampleRate / 1000;
-    env.setSamplingRate(sampleRate);
+    env = std::make_shared<TriangularRangeTukey>(env_w, env_c);
+    env->setSamplingRate(sampleRate);
 }
 
 void Grain::noteStarted(float size, float start) {
@@ -15,7 +17,7 @@ void Grain::noteStarted(float size, float start) {
     // std::cout << "Grain ON, start sample: " << cur_sample << " total samples " << morph_buf_ptr->get_num_samples() << std::endl;
 
     // Set up envelope.
-    env.set(grain_size / 1000.0);
+    env->set(grain_size / 1000.0);
 
 }
 
@@ -28,7 +30,6 @@ float Grain::getNextSample(float playback_rate, int c) {
 
         // if we reach the end of the buffer, set cur_sample to 0 (circular buffer)
         while (cur_sample[c] > buf->getNumSamples() - 2) {
-            std::cout << "WRAP " << playback_rate << std::endl;
             cur_sample[c] -= buf->getNumSamples();
         }
         // calculate what percent of the source sample we've gone through
@@ -47,7 +48,7 @@ float Grain::getNextSample(float playback_rate, int c) {
         const auto a = cur_sample[c] - v1;
         const auto result = read_pointer[v1] * (1 - a) + a * read_pointer[v2];
         // const auto env_value = env_read_pointer[v1] * (1 - a) + a * env_read_pointer[v2];
-        const auto env_val = env(playback_rate); 
+        const auto env_val = env->step(playback_rate); 
         cur_sample[c] += playback_rate;
         // std::cout << "cur sample " << cur_sample << "result " << result << std::endl;
         return result * env_val;

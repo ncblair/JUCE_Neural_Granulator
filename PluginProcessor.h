@@ -67,9 +67,6 @@ public:
     // Two Sound Files can be loaded in
     Soundfile sounds[2];
 
-    //allow sample playback
-    // std::atomic<bool> play_sample{false};
-
     
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
@@ -90,6 +87,7 @@ private:
     // float file_playback_counter{0};
 
     float morph_amt;
+
     
 
     //==============================================================================

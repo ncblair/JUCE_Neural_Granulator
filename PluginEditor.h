@@ -3,6 +3,8 @@
 #include "PluginProcessor.h"
 #include "GranLookAndFeel.h"
 #include "WaveformDisplay.h"
+#include "Utils.h"
+#include "GranulatorVoice.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor  : public juce::AudioProcessorEditor, public juce::ChangeListener
@@ -65,11 +67,26 @@ private:
     juce::Slider file_scan_sliders[2];
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> file_scan_slider_attachments[2];
 
-    // Waveforms
+    // Soundfile Waveforms
     juce::Rectangle<int> waveform_1_bounds;
     juce::Rectangle<int> waveform_2_bounds;
-
+    // Morph Waveform
     WaveformDisplay morph_waveform{&processorRef.morph_buf};
+
+    // Grain modified tukey window with width and center
+    juce::Slider grain_env_width_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grain_env_width_slider_attachment;
+    juce::Slider grain_env_center_slider{juce::Slider::Rotary, juce::Slider::TextEntryBoxPosition::TextBoxBelow};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> grain_env_center_slider_attachment;
+
+    // Grain Envelope Display
+    SafeBuffer grain_env_buffer{1, int(processorRef.getSampleRate() / 2.0)};
+    juce::AudioBuffer<float> temp_grain_env_buffer{1, int(processorRef.getSampleRate() / 2.0)};
+    WaveformDisplay grain_env_waveform{&grain_env_buffer};
+    juce::SmoothedValue<float> cur_grain_env_width;
+    juce::SmoothedValue<float> cur_grain_env_center;
+    TriangularRangeTukey grain_env_compute{&cur_grain_env_width, &cur_grain_env_center};
+    void repaint_grain_env();
 
     // std::unique_ptr<juce::FileChooser> file_chooser;
     // juce::AudioFormatManager format_manager;

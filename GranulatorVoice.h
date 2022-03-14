@@ -67,5 +67,10 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
 
     // WRITE POINTERS
     float* write_pointers[2];
+
+
+    // Grain Envelope Shape Parameters
+    juce::SmoothedValue<float> grain_env_width{0.6f}; // -1 to 1
+    juce::SmoothedValue<float> grain_env_center{0.5f}; // 0 to 1
     
 };
