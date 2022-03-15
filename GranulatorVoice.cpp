@@ -84,8 +84,8 @@ void GranulatorVoice::prepareToPlay(double sampleRate, int samplesPerBlock, int 
         grains[i].prepareToPlay(sampleRate, &(processor_ptr->morph_buf), &grain_env_width, &grain_env_center);
     }
 
-    grain_env_width.reset(sampleRate, 0.005);
-    grain_env_center.reset(sampleRate, 0.005);
+    grain_env_width.reset(sampleRate, 0.05);
+    grain_env_center.reset(sampleRate, 0.05);
 }
 
 void GranulatorVoice::setCurrentSampleRate (double newRate) {
@@ -101,7 +101,6 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
         while (numSamples > internal_playback_buffer.getNumSamples()) {
             std::cout << "Internal Playback Buffer Resized" << std::endl;;
             internal_playback_buffer.setSize(internal_playback_buffer.getNumChannels(), numSamples * 2);
-            
         }
 
         internal_playback_buffer.clear();
@@ -120,15 +119,16 @@ void GranulatorVoice::renderNextBlock (juce::AudioBuffer< float > &outputBuffer,
                 //if we check every grain and nothing is available end loop
                 for (int j = 0; grains[grain_index=(++grain_index==N_GRAINS)?0:grain_index].isActive() && ++j < N_GRAINS + 1;);
                 // turn on free grain with params at grain_index
-                grains[grain_index].noteStarted(grain_size, grain_start);
+                grains[grain_index].noteStarted(grain_dur, grain_start);
             }
+            
+            // update grain env params
+            grain_env_center.getNextValue();
+            grain_env_width.getNextValue();
 
             // Render All Grains [only active ones will actually do anything]
             for (int c = 0; c < internal_playback_buffer.getNumChannels(); ++c) {
                 for (int j = 0; j < N_GRAINS; j++) {
-                    // update grain env params
-                    grain_env_center.getNextValue();
-                    grain_env_width.getNextValue();
                     // call render method on individual grains. this has to be FAST
                     write_pointers[c][i] += grains[j].getNextSample(playback_rate, c);
                 }
@@ -156,19 +156,21 @@ bool GranulatorVoice::isActive() const{
 }
 
 bool GranulatorVoice::trigger() {
-    // trigger approximately ~density~ times per second
+    // trigger approximately ~grain_rate~ times per second
     // spray_factor is initialized to 0 so we will always trigger the first time this is called
     // spray_factor is then set to a random float between 0 and 2 that determines how soon the
     //  next grain arrives
-    trigger_helper += density;
+    trigger_helper += grain_rate;
     if (trigger_helper > processor_ptr->getSampleRate() * spray_factor) {
         // std::cout << "trigger " << std::endl;
         trigger_helper = 0.0;
-        spray_factor = 1.0f + spray * (random.nextFloat()*2.0f - 1);
+        spray_factor = 1.0f + jitter * (random.nextFloat()*2.0f - 1);
         return true;
     }
     return false;
 }
+
+
 
 void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvts) {
 
@@ -180,12 +182,12 @@ void GranulatorVoice::update_parameters(juce::AudioProcessorValueTreeState& apvt
         apvts.getRawParameterValue("ENV1_RELEASE")->load())
     );
     // set grain parameters
-    grain_size = apvts.getRawParameterValue("GRAIN_SIZE")->load();
+    grain_dur = apvts.getRawParameterValue("GRAIN_DURATION")->load();
     grain_start = apvts.getRawParameterValue("GRAIN_SCAN")->load();
 
     //set granulator parameters
-    spray = apvts.getRawParameterValue("SPRAY")->load();
-    density = apvts.getRawParameterValue("DENSITY")->load();
+    jitter = apvts.getRawParameterValue("JITTER")->load();
+    grain_rate = apvts.getRawParameterValue("GRAIN_RATE")->load();
     // grain_env_type = apvts.getRawParameterValue("GRAIN_ENV_TYPE")->load();
 
     // update grain env parameters;

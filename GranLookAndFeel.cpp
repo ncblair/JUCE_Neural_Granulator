@@ -2,6 +2,8 @@
 
 GranLookAndFeel::GranLookAndFeel() {
     setColour(juce::ResizableWindow::backgroundColourId, juce::Colours::white);
+    setColour(juce::ComboBox::backgroundColourId, juce::Colours::white);
+    setColour(juce::ComboBox::arrowColourId, juce::Colours::black);
 }
 
 //https://docs.juce.com/master/tutorial_look_and_feel_customisation.html

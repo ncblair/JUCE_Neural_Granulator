@@ -20,7 +20,7 @@ class Grain {
      * start: offset from start of morph_buf, percentage [0,1]
      * 
      */ 
-    void noteStarted(float size, float start);
+    void noteStarted(float dur, float start);
 
 
     /**
@@ -33,20 +33,20 @@ class Grain {
     /**
      * Return true if the grain is playing, o.w. return false.
      */
-    bool isActive();
+    bool isActive(int c=0);
   private:
     //Actual Source
     SafeBuffer* morph_buf_ptr{nullptr};
-    float sample_rate_ms{48};
+    float sample_rate_ms{48.0f};
 
 
     //Voice Housekeeping
-    bool note_on{false};
+    bool note_on[2]{false, false};
     float elapsed_ms[2]{0.0f, 0.0f};
     float cur_sample[2]{0.0f, 0.0f};
 
     //Grain Parameters
-    float grain_size; // length of grain in seconds
+    float grain_dur; // length of grain in ms
     float grain_start; // position in buffer normalized from 0 to 1
 
     std::shared_ptr<TriangularRangeTukey> env;

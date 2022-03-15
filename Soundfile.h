@@ -23,7 +23,7 @@ class Soundfile {
     SafeBuffer region_buffer;
     // // allocated on background thread on file load
     juce::AudioBuffer<float> region_buf_temp;
-    std::atomic<float> scan_changed;
+    std::atomic<bool> scan_changed;
 
     std::atomic<bool> file_loaded{false};
 

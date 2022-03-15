@@ -27,17 +27,25 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     addAndMakeVisible(env1_release_slider);
     env1_release_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "ENV1_RELEASE", env1_release_slider);
 
+    // ADSR Visualizer
+    addAndMakeVisible(adsr_display_1);
+    repaint_adsr_1();
+    env1_attack_slider.onValueChange = [this] {repaint_adsr_1();};
+    env1_decay_slider.onValueChange = [this] {repaint_adsr_1();};
+    env1_sustain_slider.onValueChange = [this] {repaint_adsr_1();};
+    env1_release_slider.onValueChange = [this] {repaint_adsr_1();};
+
     //Grain Shape Parameters
-    addAndMakeVisible(grain_size_slider);
-    grain_size_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_SIZE", grain_size_slider);
+    addAndMakeVisible(grain_duration_slider);
+    grain_duration_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_DURATION", grain_duration_slider);
     addAndMakeVisible(grain_scan_slider);
     grain_scan_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_SCAN", grain_scan_slider);
 
     //Granulator Parameters
-    addAndMakeVisible(spray_slider);
-    spray_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "SPRAY", spray_slider);
-    addAndMakeVisible(density_slider);
-    density_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "DENSITY", density_slider);
+    addAndMakeVisible(jitter_slider);
+    jitter_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "JITTER", jitter_slider);
+    addAndMakeVisible(grain_rate_slider);
+    grain_rate_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_RATE", grain_rate_slider);
 
     // Morphing Parameters
     addAndMakeVisible(morph_slider);
@@ -72,13 +80,34 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     grain_env_width_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_ENV_WIDTH", grain_env_width_slider);
     addAndMakeVisible(grain_env_center_slider);
     grain_env_center_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "GRAIN_ENV_CENTER", grain_env_center_slider);
-    grain_env_compute.setSamplingRate(processorRef.getSampleRate());
+    grain_env_compute.setSamplingRate(sample_rate);
     addAndMakeVisible(grain_env_waveform);
-    cur_grain_env_width.reset(processorRef.getSampleRate(), 0.0);
-    cur_grain_env_center.reset(processorRef.getSampleRate(), 0.0);
+    cur_grain_env_width.reset(sample_rate, 0.0);
+    cur_grain_env_center.reset(sample_rate, 0.0);
     repaint_grain_env();
     grain_env_width_slider.onValueChange = [this] { repaint_grain_env(); };
     grain_env_center_slider.onValueChange = [this] { repaint_grain_env(); };
+
+    // Filter
+    addAndMakeVisible(filter_cutoff_slider);
+    filter_cutoff_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "FILTER_CUTOFF", filter_cutoff_slider);
+    addAndMakeVisible(filter_q_slider);
+    filter_q_slider_attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processorRef.apvts, "FILTER_Q", filter_q_slider);
+    addAndMakeVisible(filter_type_combo_box);
+    filter_type_combo_box.addItemList(processorRef.filter_types, 1);
+    filter_type_combo_box_attachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processorRef.apvts, "FILTER_TYPE", filter_type_combo_box);
+    addAndMakeVisible(filter_on_button);
+    filter_on_button.setColour(juce::ToggleButton::ColourIds::tickColourId, juce::Colours::black);
+    filter_on_button.setColour(juce::ToggleButton::ColourIds::tickDisabledColourId, juce::Colours::black);
+    filter_on_button_attachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processorRef.apvts, "FILTER_ON", filter_on_button);
+
+    // Filter Visualizer
+    addAndMakeVisible(filter_display);
+    repaint_filter_visualizer();
+    filter_cutoff_slider.onValueChange = [this] {repaint_filter_visualizer();};
+    filter_q_slider.onValueChange = [this] {repaint_filter_visualizer();};
+    filter_type_combo_box.onChange = [this] {repaint_filter_visualizer();};
+    
 }
 
 
@@ -104,16 +133,18 @@ void AudioPluginAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    env1_attack_slider.setBounds(100., 600, 200, 50);
-    env1_decay_slider.setBounds(100., 650, 200, 50);
-    env1_sustain_slider.setBounds(200., 600, 200, 50);
-    env1_release_slider.setBounds(200., 650, 200, 50);
+    env1_attack_slider.setBounds(100., 650, 50, 50);
+    env1_decay_slider.setBounds(150., 650, 50, 50);
+    env1_sustain_slider.setBounds(200., 650, 50, 50);
+    env1_release_slider.setBounds(250., 650, 50, 50);
 
-    grain_size_slider.setBounds(getWidth() / 2.0 - 100., 250, 200, 50);
+    adsr_display_1.setBounds(100., 500, 180., 100.);
+
+    grain_duration_slider.setBounds(getWidth() / 2.0 - 100., 250, 200, 50);
     grain_scan_slider.setBounds(getWidth() / 2.0 - 100., 300, 200, 50);
 
-    spray_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
-    density_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);    
+    jitter_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
+    grain_rate_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);    
 
     // set waveform bounds
     waveform_1_bounds = juce::Rectangle<int>(10., 50., 280., 80.);
@@ -126,11 +157,56 @@ void AudioPluginAudioProcessorEditor::resized()
     morph_slider.setBounds(300., 75., 80., 50.);
     file_open_buttons[1].setBounds(390., 30., 140., 20.);
 
-    morph_waveform.setBounds(195., 200., 280., 80.);
+    morph_waveform.setBounds(195., 180., 280., 80.);
 
     grain_env_width_slider.setBounds(20., 360., 60., 50.);
     grain_env_center_slider.setBounds(80., 360., 60., 50.);
     grain_env_waveform.setBounds(20., 290., 140., 60.);
+
+    // filter
+    filter_cutoff_slider.setBounds(560., 360., 60., 50.);
+    filter_q_slider.setBounds(620., 360., 60., 50.);
+    filter_type_combo_box.setBounds(560., 280., 100., 25.);
+    filter_display.setBounds(700., 310., 180., 80.);
+    filter_on_button.setBounds(800., 280., 25., 25.);
+}
+
+void AudioPluginAudioProcessorEditor::repaint_adsr_1() {
+    temp_adsr_buf_1.clear();
+    auto write_pointer = temp_adsr_buf_1.getWritePointer(0);
+    auto attack = processorRef.apvts.getRawParameterValue("ENV1_ATTACK")->load();
+    auto decay = processorRef.apvts.getRawParameterValue("ENV1_DECAY")->load();
+    auto sustain = processorRef.apvts.getRawParameterValue("ENV1_SUSTAIN")->load();
+    auto release = processorRef.apvts.getRawParameterValue("ENV1_RELEASE")->load();
+
+    auto total_time = attack + decay + release;
+    float length = float(num_adsr_viewer_points);
+    float attack_distance = attack * length / total_time;
+    float decay_distance = decay * length / total_time;
+    float release_distance = release * length / total_time;
+
+
+    for (int i = 0; i < length; ++i) {
+        if (i < attack_distance) {
+            //attack
+            write_pointer[i] = float(i) / attack_distance;
+        }
+        else if (i < attack_distance + decay_distance) {
+            // decay
+            write_pointer[i] = 1.0 - (1.0 - sustain) * (float(i) - attack_distance) / decay_distance;
+        }
+        else {
+            // release
+            write_pointer[i] = sustain*(1 - ((float(i) - attack_distance - decay_distance) / release_distance));
+        }
+        write_pointer[i] = (write_pointer[i] / 1.2) - 1.0;
+    }
+
+
+    adsr_buf_1.queue_new_buffer(&temp_adsr_buf_1);
+    adsr_buf_1.update();
+    adsr_display_1.repaint();
+
 }
 
 void AudioPluginAudioProcessorEditor::repaint_grain_env() {
@@ -143,16 +219,50 @@ void AudioPluginAudioProcessorEditor::repaint_grain_env() {
     auto write_pointer = temp_grain_env_buffer.getWritePointer(0);
     for (int i = 0; i < grain_env_buffer.get_num_samples(); ++i) {
         write_pointer[i] = grain_env_compute.step(1.0f) * 1.75f - 1.0f;
-        // std::cout << "how many" << std::endl;
-        // write_pointer[i] = x;
     }
     grain_env_buffer.queue_new_buffer(&temp_grain_env_buffer);
     grain_env_buffer.update();
     grain_env_waveform.repaint();
 }
 
+void AudioPluginAudioProcessorEditor::repaint_filter_visualizer() {
+    auto type = int(processorRef.filter_type.getValue());
+    switch (type) {
+        case AudioPluginAudioProcessor::LOWPASS:
+            helper_filter_coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(sample_rate, 
+                                                    processorRef.filter_cutoff.getValue(), 
+                                                    processorRef.filter_q.getValue());
+            break;
+        case AudioPluginAudioProcessor::HIGHPASS:
+            helper_filter_coefficients = juce::dsp::IIR::Coefficients<float>::makeHighPass(sample_rate, 
+                                                    processorRef.filter_cutoff.getValue(), 
+                                                    processorRef.filter_q.getValue());
+            break;
+        case AudioPluginAudioProcessor::BANDPASS:
+            helper_filter_coefficients = juce::dsp::IIR::Coefficients<float>::makeBandPass(sample_rate, 
+                                                    processorRef.filter_cutoff.getValue(),
+                                                    processorRef.filter_q.getValue());
+            break;
+    }
+
+    temp_mag_response_buf.clear();
+    auto write_pointer = temp_mag_response_buf.getWritePointer(0);
+
+    auto freq = 10.0;
+    // hardcode max to be 24000
+    auto freq_mult = pow(24000.0 / (2.0* freq), 1.0 / double(num_filter_visualizer_samples));
+    for (int i = 0; i < num_filter_visualizer_samples; ++i) {
+        freq = freq * freq_mult;
+        auto mag = helper_filter_coefficients->getMagnitudeForFrequency(freq, sample_rate);
+        write_pointer[i] = float((mag / 1.5) - 1.0);
+    }
+    mag_response_buf.queue_new_buffer(&temp_mag_response_buf);
+    mag_response_buf.update();
+    filter_display.repaint();
+}
+
 void AudioPluginAudioProcessorEditor::open_file(int file_index) {
-    processorRef.sounds[file_index].load_file(&file_open_buttons[file_index], processorRef.getSampleRate());
+    processorRef.sounds[file_index].load_file(&file_open_buttons[file_index], sample_rate);
 }
 
 void AudioPluginAudioProcessorEditor::changeListenerCallback (juce::ChangeBroadcaster* source) {

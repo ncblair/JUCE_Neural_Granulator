@@ -50,36 +50,46 @@ void TriangularRangeTukey::set(float seconds) {
 }
 
 float TriangularRangeTukey::step(float playback_rate) {
-    float x;
-    float c = center->getCurrentValue(); // c in 0 to 1
-    float w = width->getCurrentValue(); // w in -1 to 1
-    
-    if (percent_elapsed < c) {
-        x = percent_elapsed / (2.0f * c);
-    }
-    else {
-        x = 0.5f + (percent_elapsed - c) / ((1.0f - c) * 2.0f);
-    }
+    auto out = get(percent_elapsed);
 
     percent_elapsed += playback_rate / total_samples;
     while (percent_elapsed >= 1.0f) {
         percent_elapsed -= 1.0f;
     }
 
+    return out;
+}
+
+float TriangularRangeTukey::get(float elapsed) {
+    if (elapsed >= 1.0f) {
+        std::cout << "ELAPSED GREATER THAN 1 " << elapsed << std::endl;
+    }
+    float x;
+    // set these values appropriately to prevent clipping (idk if this is desirable or not)
+    float c = 0.01f + 0.98f * center->getCurrentValue(); // c in 0 to 1
+    float w = width->getCurrentValue() - 0.01; // w in -1 to 1
+    
+    if (elapsed < c) {
+        x = elapsed / (2.0f * c);
+    }
+    else {
+        x = 0.5f + (elapsed - c) / ((1.0f - c) * 2.0f);
+    }
+
     if (w > 0.0f) {
 		w = (1.0f - w) / 2.0f;
 		if (x < w){
-			return 0.5f * (1.0f + juce::dsp::FastMathApproximations::cos(M_PI * (-1.0f + x/w)));
+			return 0.5f * (1.0f + std::cos(M_PI * (-1.0f + x/w)));
         }
 		else if (x > 1.0f - w){
-			return 0.5f * (1.0f + juce::dsp::FastMathApproximations::cos(M_PI * (-1.0f/w + 1.0f + x/w)));
+			return 0.5f * (1.0f + std::cos(M_PI * (-1.0f/w + 1.0f + x/w)));
         }
 		else{
             return 1.0f;
         }
     }
 	else{
-		return std::pow(juce::dsp::FastMathApproximations::sin(M_PI * x), (-10.0f * w + 2.0f));
+		return std::pow(std::sin(M_PI * x), (-10.0f * w + 2.0f));
     }
 }
 

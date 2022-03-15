@@ -50,12 +50,12 @@ class GranulatorVoice : public juce::MPESynthesiserVoice {
     juce::ADSR env1;
 
     //Grain User Parameters
-    float grain_size; // length of grain in ms
+    float grain_dur; // length of grain in ms
     float grain_start; // percentage of grain to start at in (0, 1)
 
     //Granulator User Parameters
-    float spray; //randomness (0-1)
-    float density; //ms (could scale with note, not sure)
+    float jitter; //randomness (0-1)
+    float grain_rate; //ms (could scale with note, not sure)
 
     //Granulator Internal Variables
     float gain; // 0 to 1, based on velocity

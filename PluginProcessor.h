@@ -4,6 +4,8 @@
 #include <JuceHeader.h>
 #include "utils.h"
 #include "Soundfile.h"
+// #include "Filter.h"
+#include "ParamAttachment.h"
 // #include <torch/torch.h>
 
 //==============================================================================
@@ -67,6 +69,15 @@ public:
     // Two Sound Files can be loaded in
     Soundfile sounds[2];
 
+    juce::dsp::StateVariableTPTFilter<float> filters[2];
+    ParamAttachment<float> filter_cutoff;
+    ParamAttachment<float> filter_q;
+    ParamAttachment<float> filter_type;
+    ParamAttachment<bool> filter_on_attach;
+    enum filter_type{LOWPASS, HIGHPASS, BANDPASS};
+    juce::StringArray filter_types{"LOWPASS", "HIGHPASS", "BANDPASS"};
+
+
     
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
@@ -87,6 +98,19 @@ private:
     // float file_playback_counter{0};
 
     float morph_amt;
+
+    bool filter_on{false};
+
+    void update_morph_buf_and_soundfiles();
+    void update_filter_type();
+    void update_filter_cutoff();
+    void update_filter_resonance();
+    void update_filter_on();
+
+    // std::vector<juce::String> mappable =    {"ENV1_ATTACK", "ENV1_DECAY", "ENV1_SUSTAIN", "ENV1_RELEASE", 
+    //                                         "GRAIN_ENV_WIDTH", "GRAIN_ENV_CENTER", 
+    //                                         "GRAIN_DURATION", "GRAIN_SCAN", "GRAIN_RATE", 
+    //                                         "JITTER"};
 
     
 

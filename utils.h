@@ -74,6 +74,7 @@ class TriangularRangeTukey {
   public:
     TriangularRangeTukey(juce::SmoothedValue<float>* w, juce::SmoothedValue<float>* c);
     float step(float playback_rate);
+    float get(float elapsed);
     void set(float seconds);
 
     void setSamplingRate(float samplingRate) { mSamplingRate = samplingRate; }
