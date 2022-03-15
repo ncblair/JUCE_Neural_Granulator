@@ -133,42 +133,41 @@ void AudioPluginAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    env1_attack_slider.setBounds(100., 650, 50, 50);
-    env1_decay_slider.setBounds(150., 650, 50, 50);
-    env1_sustain_slider.setBounds(200., 650, 50, 50);
-    env1_release_slider.setBounds(250., 650, 50, 50);
+    env1_attack_slider.setBounds(30., 630., 55, 50);
+    env1_decay_slider.setBounds(75., 630., 55, 50);
+    env1_sustain_slider.setBounds(125., 630., 55, 50);
+    env1_release_slider.setBounds(170., 630., 55, 50);
 
-    adsr_display_1.setBounds(100., 500, 180., 100.);
+    adsr_display_1.setBounds(50., 520., 180., 100.);
 
-    grain_duration_slider.setBounds(getWidth() / 2.0 - 100., 250, 200, 50);
-    grain_scan_slider.setBounds(getWidth() / 2.0 - 100., 300, 200, 50);
-
-    jitter_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 50);
-    grain_rate_slider.setBounds(getWidth() / 2.0 - 100., 400, 200, 50);    
+    grain_duration_slider.setBounds(getWidth() / 2.0 - 100., 350, 200, 40);
+    grain_scan_slider.setBounds(getWidth() / 2.0 - 100., 390, 200, 40);
+    jitter_slider.setBounds(getWidth() / 2.0 - 100., 430, 200, 40);
+    grain_rate_slider.setBounds(getWidth() / 2.0 - 100., 470, 200, 40);    
 
     // set waveform bounds
-    waveform_1_bounds = juce::Rectangle<int>(10., 50., 280., 80.);
-    waveform_2_bounds = juce::Rectangle<int>(390., 50., 280., 80.);
+    waveform_1_bounds = juce::Rectangle<int>(50., 50., 280., 80.);
+    waveform_2_bounds = juce::Rectangle<int>(570., 50., 280., 80.);
     // file scan within waveforms
-    file_scan_sliders[0].setBounds(10., 130., 280., 50.);
-    file_scan_sliders[1].setBounds(390., 130., 280., 50.);
+    file_scan_sliders[0].setBounds(50., 130., 280., 50.);
+    file_scan_sliders[1].setBounds(570., 130., 280., 50.);
 
-    file_open_buttons[0].setBounds(10, 30., 140., 20.);
-    morph_slider.setBounds(300., 75., 80., 50.);
-    file_open_buttons[1].setBounds(390., 30., 140., 20.);
+    file_open_buttons[0].setBounds(50, 30., 140., 20.);
+    morph_slider.setBounds(340., 75., 190., 50.);
+    file_open_buttons[1].setBounds(570., 30., 140., 20.);
 
-    morph_waveform.setBounds(195., 180., 280., 80.);
+    morph_waveform.setBounds(310., 250., 280., 80.);
 
-    grain_env_width_slider.setBounds(20., 360., 60., 50.);
-    grain_env_center_slider.setBounds(80., 360., 60., 50.);
-    grain_env_waveform.setBounds(20., 290., 140., 60.);
+    grain_env_width_slider.setBounds(70., 360., 50., 50.);
+    grain_env_center_slider.setBounds(120., 360., 50., 50.);
+    grain_env_waveform.setBounds(50., 250., 140., 60.);
 
     // filter
-    filter_cutoff_slider.setBounds(560., 360., 60., 50.);
-    filter_q_slider.setBounds(620., 360., 60., 50.);
-    filter_type_combo_box.setBounds(560., 280., 100., 25.);
-    filter_display.setBounds(700., 310., 180., 80.);
-    filter_on_button.setBounds(800., 280., 25., 25.);
+    filter_cutoff_slider.setBounds(695., 360., 70., 50.);
+    filter_q_slider.setBounds(765., 360., 70., 50.);
+    filter_type_combo_box.setBounds(670., 225., 100., 25.);
+    filter_display.setBounds(670., 250., 180., 80.);
+    filter_on_button.setBounds(800., 225., 25., 25.);
 }
 
 void AudioPluginAudioProcessorEditor::repaint_adsr_1() {

@@ -352,9 +352,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         juce::NormalisableRange<float> (1.0f, 500.0f, 1.0f),  // range
         500.0f,         // default value
         "Length of grain in ms", // parameter label (description?)
-        juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " ms";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" ms").getFloatValue();}
+        juce::AudioProcessorParameter::Category::genericParameter
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -363,9 +361,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         juce::NormalisableRange<float> (0.0f, 0.5f, 0.0f),  // range
         0.0f,         // default value
         "Position of grain in [0, 0.5]", // parameter label (description?)
-        juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " position";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" position").getFloatValue();}
+        juce::AudioProcessorParameter::Category::genericParameter
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -374,9 +370,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f),  // range
         0.0f,         // default value
         "Jitter of grain in [0, 1]", // parameter label (description?)
-        juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " entropy";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" entropy").getFloatValue();}
+        juce::AudioProcessorParameter::Category::genericParameter
     ));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -385,9 +379,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         juce::NormalisableRange<float> (1.0f, 1000.0f, 0.0f, 0.3f),  // range
         1.0f,         // default value
         "Average Rate of grain playback per voice in hz", // parameter label (description?)
-        juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " hz";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" hz").getFloatValue();}
+        juce::AudioProcessorParameter::Category::genericParameter
     ));
     auto morph_range = juce::NormalisableRange<float> (0.0f, 1.0f, 0.0f, 1.0f);
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -425,9 +417,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AudioPluginAudioProcessor::c
         juce::NormalisableRange<float> (20.0f, 20000.0f, 0.0f, 0.2f),  // range
         4000.0f,         // default value
         "Filter Cutoff Frequency", // parameter label (description?)
-        juce::AudioProcessorParameter::Category::genericParameter,
-        [](float value, int maximumStringLength) {return juce::String (value) + " hz";},
-        [](juce::String text) {return text.trimCharactersAtEnd (" hz").getFloatValue();}
+        juce::AudioProcessorParameter::Category::genericParameter
     ));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "FILTER_Q",  // parameter ID
